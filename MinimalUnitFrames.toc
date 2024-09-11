@@ -9,5 +9,6 @@
 Config.lua
 Util.lua
 MinimalUnitFrames.lua
+ClassResources.lua
 Auras.lua
 Options.lua

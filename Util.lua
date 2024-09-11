@@ -27,6 +27,28 @@ function Util.ValueFormat(value)
     end
 end
 
+function Util.FormatBarText(current, max, unit, isClassResource)
+    local statusTextDisplay = GetCVar("statusTextDisplay")
+
+    if UnitIsDeadOrGhost(unit) then
+        return "Dead"
+    elseif max == 0 then
+        return "0/0"
+    elseif isClassResource then
+        return Util.ValueFormat(current) .. " / " .. Util.ValueFormat(max)
+    elseif statusTextDisplay == "NUMERIC" then
+        return Util.ValueFormat(current) .. " / " .. Util.ValueFormat(max)
+    elseif statusTextDisplay == "PERCENT" then
+        return max > 0 and math.floor((current / max) * 100) .. "%" or "0%"
+    elseif statusTextDisplay == "BOTH" then
+        local numericText = Util.ValueFormat(current) .. " / " .. Util.ValueFormat(max)
+        local percentText = max > 0 and math.floor((current / max) * 100) .. "%" or "0%"
+        return numericText .. " " .. percentText
+    else
+        return ""
+    end
+end
+
 --- Formats a time
 ---@param time number
 function Util.TimeFormat(time)
@@ -49,4 +71,19 @@ function addon.Util.GetTableKeys(table)
         keys[#keys + 1] = k
     end
     return keys
+end
+
+--- Gets the bar color based on class and power type
+---@param unit string
+---@param isHealth boolean
+function addon.Util.GetBarColor(unit, isHealth)
+    if isHealth then
+        local _, class = UnitClass(unit)
+        local colors = addon.Config.classColors
+        return colors[class] or {1, 1, 1}
+    else
+        local _, powerType = UnitPowerType(unit)
+        local powerColors = addon.Config.powerColors
+        return powerColors[powerType] or {1, 1, 1}
+    end
 end

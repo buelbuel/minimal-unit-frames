@@ -142,6 +142,67 @@ local function FeedToBlizPanel(frame)
     showBorderCheck:SetPoint("TOPLEFT", showBlizzardFramesCheck, "BOTTOMLEFT", 0, -8)
     showBorderCheck:SetChecked(MinimalUnitFramesDB.showBorder)
 
+    -- Class Resources Checkbox
+    local classResourcesCheck = CreateCheckbox(content, "Enable Class Resources", "Display class-specific resource bars", function(self)
+        MinimalUnitFramesDB.enableClassResources = self:GetChecked()
+        addon.UpdateClassResources()
+    end)
+    classResourcesCheck:SetPoint("TOPLEFT", showBorderCheck, "BOTTOMLEFT", 0, -8)
+    classResourcesCheck:SetChecked(MinimalUnitFramesDB.enableClassResources)
+
+    -- Show Level Text Checkboxes
+    local levelTextLabel = content:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
+    levelTextLabel:SetPoint("TOPLEFT", classResourcesCheck, "BOTTOMLEFT", 0, -16)
+    levelTextLabel:SetText("Show Level Text:")
+
+    -- Player Level Text Checkbox
+    local playerLevelTextCheck = CreateCheckbox(content, "Player", "Show level text for player", function(self)
+        MinimalUnitFramesDB.showLevelText.player = self:GetChecked()
+        addon.UpdateLevelTextVisibility()
+    end)
+    playerLevelTextCheck:SetPoint("TOPLEFT", levelTextLabel, "BOTTOMLEFT", 0, -8)
+    playerLevelTextCheck:SetChecked(MinimalUnitFramesDB.showLevelText.player)
+
+    -- Target Level Text Checkbox
+    local targetLevelTextCheck = CreateCheckbox(content, "Target", "Show level text for target", function(self)
+        MinimalUnitFramesDB.showLevelText.target = self:GetChecked()
+        addon.UpdateLevelTextVisibility()
+    end)
+    targetLevelTextCheck:SetPoint("TOPLEFT", playerLevelTextCheck, "BOTTOMLEFT", 0, -8)
+    targetLevelTextCheck:SetChecked(MinimalUnitFramesDB.showLevelText.target)
+
+    -- Target of Target Level Text Checkbox
+    local totLevelTextCheck = CreateCheckbox(content, "Target of Target", "Show level text for target of target", function(self)
+        MinimalUnitFramesDB.showLevelText.targettarget = self:GetChecked()
+        addon.UpdateLevelTextVisibility()
+    end)
+    totLevelTextCheck:SetPoint("TOPLEFT", targetLevelTextCheck, "BOTTOMLEFT", 0, -8)
+    totLevelTextCheck:SetChecked(MinimalUnitFramesDB.showLevelText.targettarget)
+
+    -- Pet Level Text Checkbox
+    local petLevelTextCheck = CreateCheckbox(content, "Pet", "Show level text for pet", function(self)
+        MinimalUnitFramesDB.showLevelText.pet = self:GetChecked()
+        addon.UpdateLevelTextVisibility()
+    end)
+    petLevelTextCheck:SetPoint("TOPLEFT", totLevelTextCheck, "BOTTOMLEFT", 0, -8)
+    petLevelTextCheck:SetChecked(MinimalUnitFramesDB.showLevelText.pet)
+
+    -- Pet Target Level Text Checkbox
+    local petTargetLevelTextCheck = CreateCheckbox(content, "Pet Target", "Show level text for pet target", function(self)
+        MinimalUnitFramesDB.showLevelText.pettarget = self:GetChecked()
+        addon.UpdateLevelTextVisibility()
+    end)
+    petTargetLevelTextCheck:SetPoint("TOPLEFT", petLevelTextCheck, "BOTTOMLEFT", 0, -8)
+    petTargetLevelTextCheck:SetChecked(MinimalUnitFramesDB.showLevelText.pettarget)
+
+    -- Show Frame Backdrop Checkbox
+    local showFrameBackdropCheck = CreateCheckbox(content, "Show Frame Backdrop", "Display backdrop behind unit frames", function(self)
+        MinimalUnitFramesDB.showFrameBackdrop = self:GetChecked()
+        addon.UpdateFrameBackdropVisibility()
+    end)
+    showFrameBackdropCheck:SetPoint("TOPLEFT", petTargetLevelTextCheck, "BOTTOMLEFT", 0, -16)
+    showFrameBackdropCheck:SetChecked(MinimalUnitFramesDB.showFrameBackdrop)
+
     -- *********************
     -- Bar Texture Dropdown
     -- *********************
@@ -179,7 +240,7 @@ local function FeedToBlizPanel(frame)
     -- Player Frame Options
     -- *********************
     local playerOptionsTitle = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    playerOptionsTitle:SetPoint("TOPLEFT", showBorderCheck, "BOTTOMLEFT", 0, -160)
+    playerOptionsTitle:SetPoint("TOPLEFT", showFrameBackdropCheck, "BOTTOMLEFT", 0, -160)
     playerOptionsTitle:SetText("Player Frame Options")
 
     -- Player Frame Visibility Checkbox
@@ -194,6 +255,9 @@ local function FeedToBlizPanel(frame)
     local playerShowTextCheck = CreateCheckbox(content, "Show Player Text", "Display text on player frame", function(self)
         MinimalUnitFramesDB.showPlayerText = self:GetChecked()
         addon.UpdateTextVisibility("player")
+        if addon.ClassResources and addon.ClassResources.UpdateTextVisibility then
+            addon.ClassResources:UpdateTextVisibility(self:GetChecked())
+        end
     end)
     playerShowTextCheck:SetPoint("TOPLEFT", playerFrameCheck, "BOTTOMLEFT", 0, -16)
     playerShowTextCheck:SetChecked(MinimalUnitFramesDB.showPlayerText)
@@ -280,7 +344,7 @@ local function FeedToBlizPanel(frame)
     -- Target Frame Options
     -- *********************
     local targetOptionsTitle = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    targetOptionsTitle:SetPoint("TOPLEFT", showBorderCheck, "BOTTOMLEFT", 300, -160)
+    targetOptionsTitle:SetPoint("TOPLEFT", showFrameBackdropCheck, "BOTTOMLEFT", 300, -160)
     targetOptionsTitle:SetText("Target Frame Options")
 
     -- Target Frame Visibility Checkbox

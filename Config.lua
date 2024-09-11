@@ -20,6 +20,7 @@ Config.defaultConfig = {
 
     -- Frame Appearance
     showBorder = true,
+    showFrameBackdrop = true,
     alpha = 1,
     width = 204,
     height = 64,
@@ -59,7 +60,7 @@ Config.defaultConfig = {
     petStrata = "MEDIUM",
     petAnchor = "CENTER",
     petTargetStrata = "MEDIUM",
-    petTargetAnchor = "CENTER",
+    petTargetAnchor = "CENTER"
 }
 
 ---@type table
@@ -165,6 +166,12 @@ Config.auraConfig = {
         size = 36,
         showCooldownText = false
     }
+}
+
+---@type table
+Config.classResourcesConfig = {
+    enabled = true,
+    showResourceBar = true
 }
 
 return Config

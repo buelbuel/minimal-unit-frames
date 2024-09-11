@@ -3,6 +3,7 @@
 Minimal Unit Frames for Player and Target, with optional modules for Castbar and Partyframes. Gain back screen real estate, no distracting elements, minimalistic aura display. Type /muf or open the options panel for configuration.
 
 ## Features
+
 1. Lightweight yet customizable alternative
 2. No bloat, in size and on display
 3. Ties in visually with the default UI if not configured otherwise
