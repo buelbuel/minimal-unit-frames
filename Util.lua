@@ -15,6 +15,18 @@ function Util.FetchMedia(mediaType, name)
     return nil
 end
 
+---@param mediaType string
+---@return table
+function Util.GetMediaList(mediaType)
+    local list = {}
+    if addon.Config.media[mediaType] then
+        for key, _ in pairs(addon.Config.media[mediaType]) do
+            table.insert(list, key)
+        end
+    end
+    return list
+end
+
 --- Formats a value
 ---@param value number
 function Util.ValueFormat(value)
@@ -27,6 +39,11 @@ function Util.ValueFormat(value)
     end
 end
 
+--- Formats a bar text
+---@param current number
+---@param max number
+---@param unit string
+---@param isClassResource boolean
 function Util.FormatBarText(current, max, unit, isClassResource)
     local statusTextDisplay = GetCVar("statusTextDisplay")
 
@@ -77,6 +94,9 @@ end
 ---@param unit string
 ---@param isHealth boolean
 function addon.Util.GetBarColor(unit, isHealth)
+    if unit == "targetoftarget" then
+        unit = "targettarget" -- WoW API still uses "targettarget"
+    end
     if isHealth then
         local _, class = UnitClass(unit)
         local colors = addon.Config.classColors
@@ -86,4 +106,31 @@ function addon.Util.GetBarColor(unit, isHealth)
         local powerColors = addon.Config.powerColors
         return powerColors[powerType] or {1, 1, 1}
     end
+end
+
+--- Returns the frame dimensions
+---@param unit string
+---@return number, number
+function addon.Util.GetFrameDimensions(unit)
+    local width, height
+    if unit == "player" then
+        width = MinimalUnitFramesDB.playerWidth or addon.Config.defaultConfig.playerWidth
+        height = MinimalUnitFramesDB.playerHeight or addon.Config.defaultConfig.playerHeight
+    elseif unit == "target" then
+        width = MinimalUnitFramesDB.targetWidth or addon.Config.defaultConfig.targetWidth
+        height = MinimalUnitFramesDB.targetHeight or addon.Config.defaultConfig.targetHeight
+    elseif unit == "targetoftarget" then
+        width = MinimalUnitFramesDB.targetoftargetWidth or addon.Config.defaultConfig.targetoftargetWidth
+        height = MinimalUnitFramesDB.targetoftargetHeight or addon.Config.defaultConfig.targetoftargetHeight
+    elseif unit == "pet" then
+        width = MinimalUnitFramesDB.petWidth or addon.Config.defaultConfig.petWidth
+        height = MinimalUnitFramesDB.petHeight or addon.Config.defaultConfig.petHeight
+    elseif unit == "pettarget" then
+        width = MinimalUnitFramesDB.petTargetWidth or addon.Config.defaultConfig.petTargetWidth
+        height = MinimalUnitFramesDB.petTargetHeight or addon.Config.defaultConfig.petTargetHeight
+    else
+        width = addon.Config.defaultConfig.width
+        height = addon.Config.defaultConfig.height
+    end
+    return width, height
 end

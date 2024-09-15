@@ -30,7 +30,9 @@ local function CreateAuraButton(parent, index, isDebuff)
     button.border:SetVertexColor(isDebuff and 1 or 0, 0, 0, 1)
 
     button.count = button:CreateFontString(nil, "OVERLAY")
-    button.count:SetFont(media("font", "FrizQuadrataTT"), 12, "OUTLINE") -- TODO: Make this configurable
+    button.count:SetFont(media("fonts", MinimalUnitFramesDB.font or addon.Config.defaultConfig.font),
+        MinimalUnitFramesDB.fontSize or addon.Config.defaultConfig.fontSize,
+        MinimalUnitFramesDB.fontStyle or addon.Config.defaultConfig.fontStyle)
     button.count:SetPoint("BOTTOMRIGHT", -1, 1)
 
     button.cooldown = CreateFrame("Cooldown", nil, button, "CooldownFrameTemplate")
@@ -104,8 +106,10 @@ local function UpdateAuras(frame, unit, filter, config, isDebuff)
         local button = frame.auras[filter][index] or CreateAuraButton(frame.auras[filter], index, isDebuff)
         frame.auras[filter][index] = button
         button:SetID(i)
-        UpdateAuraButton(button, auraData.name, auraData.icon, auraData.applications, auraData.duration, auraData.expirationTime, auraData.dispelName, isDebuff)
-        button:SetPoint("TOPLEFT", frame.auras[filter], "TOPLEFT", ((index - 1) % config.perRow) * (config.size + 2), -math.floor((index - 1) / config.perRow) * (config.size + 2))
+        UpdateAuraButton(button, auraData.name, auraData.icon, auraData.applications, auraData.duration, auraData.expirationTime,
+            auraData.dispelName, isDebuff)
+        button:SetPoint("TOPLEFT", frame.auras[filter], "TOPLEFT", ((index - 1) % config.perRow) * (config.size + 2),
+            -math.floor((index - 1) / config.perRow) * (config.size + 2))
         button:Show()
         index = index + 1
         hasAuras = true
@@ -147,12 +151,12 @@ function Auras:Update(frame, unit)
     end
 
     local hasBuffs = false
-    if (unit == "player" and AURA_CONFIG.buffs.playerEnabled) or (unit == "target" and AURA_CONFIG.buffs.targetEnabled) then
+    if (unit == "player" and MinimalUnitFramesDB.showPlayerBuffs) or (unit == "target" and MinimalUnitFramesDB.showTargetBuffs) then
         hasBuffs = UpdateAuras(frame, unit, "HELPFUL", AURA_CONFIG.buffs, false)
     end
 
     local hasDebuffs = false
-    if (unit == "player" and AURA_CONFIG.debuffs.playerEnabled) or (unit == "target" and AURA_CONFIG.debuffs.targetEnabled) then
+    if (unit == "player" and MinimalUnitFramesDB.showPlayerDebuffs) or (unit == "target" and MinimalUnitFramesDB.showTargetDebuffs) then
         hasDebuffs = UpdateAuras(frame, unit, "HARMFUL", AURA_CONFIG.debuffs, true)
     end
 

@@ -14,11 +14,14 @@ function ClassResources:CreateResourceBar(frame)
     resourceBar:SetPoint("TOPLEFT", frame.powerBar, "BOTTOMLEFT", 0, -1)
     resourceBar:SetPoint("BOTTOMRIGHT", frame.barsFrame, "BOTTOMRIGHT", -5, 5)
     resourceBar:SetHeight(frame:GetHeight() * 0.25)
-    resourceBar:SetStatusBarTexture(media("statusbar", MinimalUnitFramesDB.barTexture or addon.Config.defaultConfig.barTexture))
+    resourceBar:SetStatusBarTexture(media("textures",
+        MinimalUnitFramesDB.barTexture or addon.Config.defaultConfig.barTexture))
     resourceBar:Hide()
 
     resourceBar.text = resourceBar:CreateFontString(nil, "OVERLAY")
-    resourceBar.text:SetFont(media("font", addon.Config.defaultConfig.font), addon.Config.defaultConfig.fontsize, addon.Config.defaultConfig.fontstyle)
+    resourceBar.text:SetFont(media("fonts", MinimalUnitFramesDB.font or addon.Config.defaultConfig.font),
+        MinimalUnitFramesDB.fontSize or addon.Config.defaultConfig.fontSize,
+        MinimalUnitFramesDB.fontStyle or addon.Config.defaultConfig.fontStyle)
     resourceBar.text:SetPoint("CENTER", resourceBar, "CENTER")
     resourceBar.text:SetTextColor(1, 1, 1)
     resourceBar.text:SetJustifyH("CENTER")
@@ -107,7 +110,7 @@ end
 
 --- Updates the text visibility
 ---@param showText boolean
-function ClassResources:UpdateTextVisibility(showText)
+function ClassResources:UpdateFrameTextVisibility(showText)
     if self.resourceBar and self.resourceBar.text then
         if showText then
             self.resourceBar.text:Show()

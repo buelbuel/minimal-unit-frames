@@ -8,15 +8,26 @@ Config.defaultConfig = {
     -- Frame Visibility
     showPlayerFrame = true,
     showTargetFrame = true,
-    showTargettargetFrame = true,
+    showTargetoftargetFrame = true,
     showPetFrame = true,
-    showPetTargetFrame = true,
+    showPetTargetFrame = false,
     showBlizzardFrames = false,
     showBlizzardPlayerFrame = false,
     showBlizzardTargetFrame = false,
-    showBlizzardTargettargetFrame = false,
+    showBlizzardTargetoftargetFrame = false,
     showBlizzardPetFrame = false,
     showBlizzardPetTargetFrame = false,
+
+    showPlayerBuffs = false,
+    showTargetBuffs = true,
+    showPlayerDebuffs = true,
+    showTargetDebuffs = true,
+
+    showPlayerPowerBar = true,
+    showTargetPowerBar = true,
+    showTargetoftargetPowerBar = false,
+    showPetPowerBar = false,
+    showPetTargetPowerBar = false,
 
     -- Frame Appearance
     showBorder = true,
@@ -24,17 +35,23 @@ Config.defaultConfig = {
     alpha = 1,
     width = 204,
     height = 64,
-    barTexture = "Blizzard",
+    barTexture = "Minimalist",
 
     -- Text Options
-    showPlayerText = true,
-    showTargetText = true,
-    showTargettargetText = true,
-    showPetText = true,
-    showPetTargetText = true,
+    showPlayerFrameText = true,
+    showTargetFrameText = true,
+    showTargetoftargetFrameText = false,
+    showPetFrameText = true,
+    showPetTargetFrameText = false,
+    showPlayerLevelText = true,
+    showTargetLevelText = true,
+    showTargetoftargetLevelText = false,
+    showPetLevelText = false,
+    showPetTargetLevelText = false,
+
     font = "FrizQuadrataTT",
-    fontsize = 12,
-    fontstyle = "OUTLINE",
+    fontSize = 12,
+    fontStyle = "NONE",
 
     -- Frame Positioning
     strata = "MEDIUM",
@@ -43,24 +60,34 @@ Config.defaultConfig = {
     playerYPos = -200,
     targetXPos = 200,
     targetYPos = -200,
-    targettargetXPos = 200,
-    targettargetYPos = -200,
+    targetoftargetXPos = 350,
+    targetoftargetYPos = -250,
     petXPos = 200,
     petYPos = -200,
     petTargetXPos = 200,
     petTargetYPos = -200,
 
     -- Frame-specific Settings
-    playerStrata = "MEDIUM",
+    playerWidth = 204,
+    playerHeight = 100,
+    targetWidth = 204,
+    targetHeight = 100,
+    targetoftargetWidth = 84,
+    targetoftargetHeight = 32,
+    petWidth = 102,
+    petHeight = 48,
+    petTargetWidth = 84,
+    petTargetHeight = 32,
     playerAnchor = "CENTER",
-    targetStrata = "MEDIUM",
     targetAnchor = "CENTER",
-    targettargetStrata = "MEDIUM",
-    targettargetAnchor = "CENTER",
-    petStrata = "MEDIUM",
+    targetoftargetAnchor = "CENTER",
     petAnchor = "CENTER",
-    petTargetStrata = "MEDIUM",
-    petTargetAnchor = "CENTER"
+    petTargetAnchor = "CENTER",
+    playerStrata = "MEDIUM",
+    targetStrata = "MEDIUM",
+    targetoftargetStrata = "MEDIUM",
+    petStrata = "MEDIUM",
+    petTargetStrata = "MEDIUM"
 }
 
 ---@type table
@@ -119,7 +146,7 @@ Config.powerColors = {
 
 ---@type table
 Config.media = {
-    statusbar = {
+    textures = {
         Blizzard = "Interface\\TargetingFrame\\UI-StatusBar",
         Aluminium = "Interface\\AddOns\\MinimalUnitFrames\\Media\\Textures\\Aluminium",
         Armory = "Interface\\AddOns\\MinimalUnitFrames\\Media\\Textures\\Armory",
@@ -138,13 +165,36 @@ Config.media = {
         Round = "Interface\\AddOns\\MinimalUnitFrames\\Media\\Textures\\Round",
         Smooth = "Interface\\AddOns\\MinimalUnitFrames\\Media\\Textures\\Smooth"
     },
-    font = {
+    fonts = {
         FrizQuadrataTT = "Fonts\\FRIZQT__.TTF",
         ABF = "Interface\\AddOns\\MinimalUnitFrames\\Media\\Fonts\\ABF.ttf",
         AccidentalPresidency = "Interface\\AddOns\\MinimalUnitFrames\\Media\\Fonts\\Accidental Presidency.ttf",
         Adventure = "Interface\\AddOns\\MinimalUnitFrames\\Media\\Fonts\\Adventure.ttf",
         Avqest = "Interface\\AddOns\\MinimalUnitFrames\\Media\\Fonts\\Avqest.ttf",
         VeraSe = "Interface\\AddOns\\MinimalUnitFrames\\Media\\Fonts\\VeraSe.ttf"
+    },
+    fontStyles = {
+        OUTLINE = "OUTLINE",
+        MONOCHROME = "MONOCHROME",
+        NONE = "NONE"
+    },
+    stratas = {
+        BACKGROUND = "BACKGROUND",
+        LOW = "LOW",
+        MEDIUM = "MEDIUM",
+        HIGH = "HIGH",
+        DIALOG = "DIALOG"
+    },
+    anchorPoints = {
+        TOP = "TOP",
+        BOTTOM = "BOTTOM",
+        LEFT = "LEFT",
+        RIGHT = "RIGHT",
+        CENTER = "CENTER",
+        TOPLEFT = "TOPLEFT",
+        TOPRIGHT = "TOPRIGHT",
+        BOTTOMLEFT = "BOTTOMLEFT",
+        BOTTOMRIGHT = "BOTTOMRIGHT"
     }
 }
 
