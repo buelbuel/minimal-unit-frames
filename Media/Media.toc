@@ -1,0 +1,6 @@
+## Interface: 100207
+## Title: Minimal Unit Frames Media
+## Notes: Media files for Minimal Unit Frames
+## Author: mashugac
+## Version: 0.0.3
+## Dependencies: MinimalUnitFrames

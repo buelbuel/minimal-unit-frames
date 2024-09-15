@@ -3,8 +3,11 @@
 ## Notes: A lightweight unit frame addon
 ## Description: Minimal Unit Frames for Player and Target, with optional modules for Castbar and Partyframes
 ## Author: mashugac
-## Version: 0.0.1
+## Version: 0.0.3
 ## SavedVariables: MinimalUnitFramesDB
+
+# Media
+Media\Media.toc
 
 Config.lua
 Util.lua
