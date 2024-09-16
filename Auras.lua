@@ -93,6 +93,8 @@ local function UpdateAuras(frame, unit, filter, config, isDebuff)
     frame.auras[filter].filter = filter
     local index = 1
     local hasAuras = false
+    local size = MinimalUnitFramesDB[unit .. "AuraButtonSize"] or config.size
+    local perRow = MinimalUnitFramesDB[unit .. "AuraButtonsPerRow"] or config.perRow
 
     for i = 1, 40 do
         local auraData = C_UnitAuras.GetAuraDataByIndex(unit, i, filter)
@@ -106,8 +108,6 @@ local function UpdateAuras(frame, unit, filter, config, isDebuff)
         button:SetID(i)
         UpdateAuraButton(button, auraData.name, auraData.icon, auraData.applications, auraData.duration, auraData.expirationTime, auraData.dispelName, isDebuff)
 
-        local size = MinimalUnitFramesDB[unit .. "AuraButtonSize"] or config.size
-        local perRow = MinimalUnitFramesDB[unit .. "AuraButtonsPerRow"] or config.perRow
         button:SetSize(size, size)
         button:SetPoint("TOPLEFT", frame.auras[filter], "TOPLEFT", ((index - 1) % perRow) * (size + 2), -math.floor((index - 1) / perRow) * (size + 2))
 
@@ -120,7 +120,8 @@ local function UpdateAuras(frame, unit, filter, config, isDebuff)
         frame.auras[filter][i]:Hide()
     end
 
-    return hasAuras
+    local auraCount = index - 1
+    return hasAuras, auraCount
 end
 
 --- Creates the aura frames
@@ -151,22 +152,28 @@ function Auras:Update(frame, unit)
         return
     end
 
-    local hasBuffs = false
+    local hasBuffs, buffCount = false, 0
     if (unit == "player" and MinimalUnitFramesDB.showPlayerBuffs) or (unit == "target" and MinimalUnitFramesDB.showTargetBuffs) then
-        hasBuffs = UpdateAuras(frame, unit, "HELPFUL", AURA_CONFIG.buffs, false)
+        hasBuffs, buffCount = UpdateAuras(frame, unit, "HELPFUL", AURA_CONFIG.buffs, false)
     end
 
-    local hasDebuffs = false
+    local hasDebuffs, debuffCount = false, 0
     if (unit == "player" and MinimalUnitFramesDB.showPlayerDebuffs) or (unit == "target" and MinimalUnitFramesDB.showTargetDebuffs) then
-        hasDebuffs = UpdateAuras(frame, unit, "HARMFUL", AURA_CONFIG.debuffs, true)
+        hasDebuffs, debuffCount = UpdateAuras(frame, unit, "HARMFUL", AURA_CONFIG.debuffs, true)
     end
+
+    local buffSize = MinimalUnitFramesDB[unit .. "AuraButtonSize"] or AURA_CONFIG.buffs.size
+    local buffSpacing = 2
+    local perRow = MinimalUnitFramesDB[unit .. "AuraButtonsPerRow"] or AURA_CONFIG.buffs.perRow
+    local buffRows = math.ceil(buffCount / perRow)
 
     if hasBuffs then
-        frame.auras.HARMFUL:SetPoint("TOPLEFT", frame.auras.HELPFUL, "BOTTOMLEFT", 0, -2)
+        frame.auras.HARMFUL:SetPoint("TOPLEFT", frame.auras.HELPFUL, "BOTTOMLEFT", 0, -buffSpacing)
     else
         frame.auras.HARMFUL:SetPoint("TOPLEFT", frame, "BOTTOMLEFT", 0, -2)
     end
 
+    frame.auras.HELPFUL:SetHeight(buffRows * (buffSize + buffSpacing))
     frame.auras.HELPFUL:SetShown(hasBuffs)
     frame.auras.HARMFUL:SetShown(hasDebuffs)
 end

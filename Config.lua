@@ -11,7 +11,6 @@ Config.defaultConfig = {
     showTargetoftargetFrame = true,
     showPetFrame = true,
     showPetTargetFrame = false,
-    showBlizzardFrames = false,
     showBlizzardPlayerFrame = false,
     showBlizzardTargetFrame = false,
     showBlizzardTargetoftargetFrame = false,
@@ -37,7 +36,16 @@ Config.defaultConfig = {
     height = 64,
     barTexture = "Minimalist",
 
+    useClassColorsPlayer = true,
+    useClassColorsTarget = true,
+    customColorPlayer = {0, 1, 0, 1},
+    customColorTarget = {0, 1, 0, 1},
+
     -- Text Options
+    font = "FrizQuadrataTT",
+    fontSize = 12,
+    fontStyle = "NONE",
+
     showPlayerFrameText = true,
     showTargetFrameText = true,
     showTargetoftargetFrameText = false,
@@ -48,10 +56,6 @@ Config.defaultConfig = {
     showTargetoftargetLevelText = false,
     showPetLevelText = false,
     showPetTargetLevelText = false,
-
-    font = "FrizQuadrataTT",
-    fontSize = 12,
-    fontStyle = "NONE",
 
     -- Frame Positioning
     strata = "MEDIUM",

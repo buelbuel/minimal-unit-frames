@@ -317,12 +317,6 @@ local function CreateOptions(frame)
     local rightYOffset = -10
 
     -- General Options (Left Column)
-    CreateOptionElement(leftColumn, "Checkbox", "Show Blizzard Frames", "Display default Blizzard unit frames", function(self)
-        MinimalUnitFramesDB.showBlizzardFrames = self:GetChecked()
-        addon.ToggleBlizzardFrames(self:GetChecked())
-    end, leftYOffset, MinimalUnitFramesDB.showBlizzardFrames)
-    leftYOffset = leftYOffset - 30
-
     CreateOptionElement(leftColumn, "Checkbox", "Show Border", "Display border around unit frames", function(self)
         MinimalUnitFramesDB.showBorder = self:GetChecked()
         addon.UpdateBorderVisibility()
@@ -396,6 +390,12 @@ local function CreateOptions(frame)
     local playerRightY = 0
 
     -- Player Frame Options (Left Column)
+    CreateOptionElement(playerLeftColumn, "Checkbox", "Use Player Class Colors", "Use class colors for player health bar", function(self)
+        MinimalUnitFramesDB.useClassColorsPlayer = self:GetChecked()
+        addon.UpdateFrame(addon.playerFrame, "player")
+    end, playerLeftY, MinimalUnitFramesDB.useClassColorsPlayer)
+    playerLeftY = playerLeftY - 30
+
     CreateOptionElement(playerLeftColumn, "Checkbox", "Show Player Frame", "Display Player frame", function(self)
         MinimalUnitFramesDB.showPlayerFrame = self:GetChecked()
         addon.UpdateFramesVisibility()
@@ -529,6 +529,12 @@ local function CreateOptions(frame)
     local targetRightY = 0
 
     -- Target Frame Options (Left Column)
+    CreateOptionElement(targetLeftColumn, "Checkbox", "Use Target Class Colors", "Use class colors for target health bar", function(self)
+        MinimalUnitFramesDB.useClassColorsTarget = self:GetChecked()
+        addon.UpdateFrame(addon.targetFrame, "target")
+    end, targetLeftY, MinimalUnitFramesDB.useClassColorsTarget)
+    targetLeftY = targetLeftY - 30
+
     CreateOptionElement(targetLeftColumn, "Checkbox", "Show Target Frame", "Display Target frame", function(self)
         MinimalUnitFramesDB.showTargetFrame = self:GetChecked()
         addon.UpdateFramesVisibility()
@@ -583,12 +589,6 @@ local function CreateOptions(frame)
         max = 20,
         step = 1
     })
-    targetLeftY = targetLeftY - 50
-
-    CreateOptionElement(targetLeftColumn, "ColorPicker", "Aura Swipe Color", "Select the swipe color for aura buttons", function(r, g, b, a)
-        MinimalUnitFramesDB.targetAuraSwipeColor = {r, g, b, a}
-        addon.UpdateAllFrames()
-    end, targetLeftY, unpack(MinimalUnitFramesDB.targetAuraSwipeColor or {0, 0, 0, 0.8}))
     targetLeftY = targetLeftY - 50
 
     CreateOptionElement(targetLeftColumn, "Dropdown", "Target Frame Strata", "Set the strata of the Target frame", function(value)
