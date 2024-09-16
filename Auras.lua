@@ -13,7 +13,7 @@ local function CreateAuraButton(parent, index, isDebuff)
     local config = isDebuff and AURA_CONFIG.debuffs or AURA_CONFIG.buffs
     local size = config.size
     local button = CreateFrame("Button", nil, parent)
-    button:SetSize(size, size) -- TODO: Make this configurable
+    button:SetSize(size, size)
 
     button.icon = button:CreateTexture(nil, "BACKGROUND")
     button.icon:SetAllPoints(true)
@@ -25,21 +25,19 @@ local function CreateAuraButton(parent, index, isDebuff)
 
     button.border = button:CreateTexture(nil, "OVERLAY")
     button.border:SetAllPoints(true)
-    button.border:SetTexture("Interface\\Buttons\\UI-Debuff-Overlays") -- TODO: Make this configurable
+    button.border:SetTexture("Interface\\Buttons\\UI-Debuff-Overlays")
     button.border:SetTexCoord(0.296875, 0.5703125, 0, 0.515625)
     button.border:SetVertexColor(isDebuff and 1 or 0, 0, 0, 1)
 
     button.count = button:CreateFontString(nil, "OVERLAY")
-    button.count:SetFont(media("fonts", MinimalUnitFramesDB.font or addon.Config.defaultConfig.font),
-        MinimalUnitFramesDB.fontSize or addon.Config.defaultConfig.fontSize,
-        MinimalUnitFramesDB.fontStyle or addon.Config.defaultConfig.fontStyle)
+    button.count:SetFont(media("fonts", MinimalUnitFramesDB.font or addon.Config.defaultConfig.font), MinimalUnitFramesDB.fontSize or addon.Config.defaultConfig.fontSize, MinimalUnitFramesDB.fontStyle or addon.Config.defaultConfig.fontStyle)
     button.count:SetPoint("BOTTOMRIGHT", -1, 1)
 
     button.cooldown = CreateFrame("Cooldown", nil, button, "CooldownFrameTemplate")
     button.cooldown:SetAllPoints()
     button.cooldown:SetDrawEdge(false)
     button.cooldown:SetDrawSwipe(true)
-    button.cooldown:SetSwipeColor(0, 0, 0, 0.8) -- TODO: Make this configurable
+    button.cooldown:SetSwipeColor(0, 0, 0, 0.8)
     button.cooldown:SetHideCountdownNumbers(not config.showCooldownText)
 
     button:SetScript("OnEnter", function(self)
@@ -106,13 +104,16 @@ local function UpdateAuras(frame, unit, filter, config, isDebuff)
         local button = frame.auras[filter][index] or CreateAuraButton(frame.auras[filter], index, isDebuff)
         frame.auras[filter][index] = button
         button:SetID(i)
-        UpdateAuraButton(button, auraData.name, auraData.icon, auraData.applications, auraData.duration, auraData.expirationTime,
-            auraData.dispelName, isDebuff)
-        button:SetPoint("TOPLEFT", frame.auras[filter], "TOPLEFT", ((index - 1) % config.perRow) * (config.size + 2),
-            -math.floor((index - 1) / config.perRow) * (config.size + 2))
+        UpdateAuraButton(button, auraData.name, auraData.icon, auraData.applications, auraData.duration, auraData.expirationTime, auraData.dispelName, isDebuff)
+
+        local size = MinimalUnitFramesDB[unit .. "AuraButtonSize"] or config.size
+        local perRow = MinimalUnitFramesDB[unit .. "AuraButtonsPerRow"] or config.perRow
+        button:SetSize(size, size)
+        button:SetPoint("TOPLEFT", frame.auras[filter], "TOPLEFT", ((index - 1) % perRow) * (size + 2), -math.floor((index - 1) / perRow) * (size + 2))
+
         button:Show()
-        index = index + 1
         hasAuras = true
+        index = index + 1
     end
 
     for i = index, #frame.auras[filter] do
@@ -169,5 +170,3 @@ function Auras:Update(frame, unit)
     frame.auras.HELPFUL:SetShown(hasBuffs)
     frame.auras.HARMFUL:SetShown(hasDebuffs)
 end
-
-_G["MinimalUnitFrames_Auras"] = Auras

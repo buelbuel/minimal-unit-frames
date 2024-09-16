@@ -432,6 +432,32 @@ local function CreateOptions(frame)
     end, playerLeftY, MinimalUnitFramesDB.showPlayerDebuffs)
     playerLeftY = playerLeftY - 50
 
+    CreateOptionElement(playerLeftColumn, "Slider", "Aura Button Size", "Adjust the size of the aura buttons", function(self, value)
+        MinimalUnitFramesDB.playerAuraButtonSize = value
+        addon.UpdateAllFrames()
+    end, playerLeftY, MinimalUnitFramesDB.playerAuraButtonSize or addon.Config.auraConfig.buffs.size, {
+        min = 10,
+        max = 50,
+        step = 1
+    })
+    playerLeftY = playerLeftY - 50
+
+    CreateOptionElement(playerLeftColumn, "Slider", "Aura Buttons Per Row", "Adjust the number of aura buttons per row", function(self, value)
+        MinimalUnitFramesDB.playerAuraButtonsPerRow = value
+        addon.UpdateAllFrames()
+    end, playerLeftY, MinimalUnitFramesDB.playerAuraButtonsPerRow or addon.Config.auraConfig.buffs.perRow, {
+        min = 1,
+        max = 20,
+        step = 1
+    })
+    playerLeftY = playerLeftY - 50
+
+    CreateOptionElement(playerLeftColumn, "ColorPicker", "Aura Swipe Color", "Select the swipe color for aura buttons", function(r, g, b, a)
+        MinimalUnitFramesDB.playerAuraSwipeColor = {r, g, b, a}
+        addon.UpdateAllFrames()
+    end, playerLeftY, unpack(MinimalUnitFramesDB.playerAuraSwipeColor or {0, 0, 0, 0.8}))
+    playerLeftY = playerLeftY - 50
+
     CreateOptionElement(playerLeftColumn, "Dropdown", "Player Frame Strata", "Set the strata of the Player frame", function(value)
         MinimalUnitFramesDB.playerStrata = value
         addon.UpdateFrameStrata(addon.playerFrame, "player")
@@ -537,6 +563,32 @@ local function CreateOptions(frame)
         MinimalUnitFramesDB.showPlayerDebuffs = self:GetChecked()
         addon.UpdateFramesVisibility()
     end, targetLeftY, MinimalUnitFramesDB.showTargetDebuffs)
+    targetLeftY = targetLeftY - 50
+
+    CreateOptionElement(targetLeftColumn, "Slider", "Aura Button Size", "Adjust the size of the aura buttons", function(self, value)
+        MinimalUnitFramesDB.targetAuraButtonSize = value
+        addon.UpdateAllFrames()
+    end, targetLeftY, MinimalUnitFramesDB.targetAuraButtonSize or addon.Config.auraConfig.buffs.size, {
+        min = 10,
+        max = 50,
+        step = 1
+    })
+    targetLeftY = targetLeftY - 50
+
+    CreateOptionElement(targetLeftColumn, "Slider", "Aura Buttons Per Row", "Adjust the number of aura buttons per row", function(self, value)
+        MinimalUnitFramesDB.targetAuraButtonsPerRow = value
+        addon.UpdateAllFrames()
+    end, targetLeftY, MinimalUnitFramesDB.targetAuraButtonsPerRow or addon.Config.auraConfig.buffs.perRow, {
+        min = 1,
+        max = 20,
+        step = 1
+    })
+    targetLeftY = targetLeftY - 50
+
+    CreateOptionElement(targetLeftColumn, "ColorPicker", "Aura Swipe Color", "Select the swipe color for aura buttons", function(r, g, b, a)
+        MinimalUnitFramesDB.targetAuraSwipeColor = {r, g, b, a}
+        addon.UpdateAllFrames()
+    end, targetLeftY, unpack(MinimalUnitFramesDB.targetAuraSwipeColor or {0, 0, 0, 0.8}))
     targetLeftY = targetLeftY - 50
 
     CreateOptionElement(targetLeftColumn, "Dropdown", "Target Frame Strata", "Set the strata of the Target frame", function(value)

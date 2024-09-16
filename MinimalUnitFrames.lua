@@ -13,67 +13,66 @@ local eventFrame = CreateFrame("Frame")
 ---@param event string
 ---@param ... any
 local function EventFrame_OnEvent(self, event, ...)
+    local function updateFrames()
+        addon.ToggleBlizzardFrames(MinimalUnitFramesDB.showBlizzardFrames)
+        UpdateFrame(playerFrame, "player")
+        if UnitExists("target") then
+            UpdateFrame(targetFrame, "target")
+            if MinimalUnitFramesDB.showTargetoftarget then
+                UpdateFrame(targetoftargetFrame, "targetoftarget")
+            end
+        end
+        if UnitExists("pet") then
+            UpdateFrame(petFrame, "pet")
+            if MinimalUnitFramesDB.showPetTarget and UnitExists("pettarget") then
+                UpdateFrame(petTargetFrame, "pettarget")
+            end
+        end
+    end
+
     if event == "PLAYER_ENTERING_WORLD" or event == "ZONE_CHANGED_NEW_AREA" or event == "PLAYER_REGEN_ENABLED" or event == "GROUP_ROSTER_UPDATE" then
-        C_Timer.After(0.1, function()
-            addon.ToggleBlizzardFrames(MinimalUnitFramesDB.showBlizzardFrames)
-            UpdateFrame(playerFrame, "player")
-            if UnitExists("target") then
-                UpdateFrame(targetFrame, "target")
-                if MinimalUnitFramesDB.showTargetoftarget then
-                    UpdateFrame(targetoftargetFrame, "targetoftarget")
-                end
+        C_Timer.After(0.1, updateFrames)
+    elseif event == "UNIT_PET" and ... == "player" then
+        if UnitExists("pet") then
+            UpdateFrame(petFrame, "pet")
+            if MinimalUnitFramesDB.showPetTarget and UnitExists("pettarget") then
+                UpdateFrame(petTargetFrame, "pettarget")
             end
-            if UnitExists("pet") then
-                UpdateFrame(petFrame, "pet")
-                if MinimalUnitFramesDB.showPetTarget and UnitExists("pettarget") then
-                    UpdateFrame(petTargetFrame, "pettarget")
-                end
-            end
-        end)
-    elseif event == "UNIT_PET" then
-        local unit = ...
-        if unit == "player" then
-            if UnitExists("pet") then
-                UpdateFrame(petFrame, "pet")
-                if MinimalUnitFramesDB.showPetTarget and UnitExists("pettarget") then
-                    UpdateFrame(petTargetFrame, "pettarget")
-                end
-            else
-                petFrame:Hide()
-                petTargetFrame:Hide()
-            end
+        else
+            petFrame:Hide()
+            petTargetFrame:Hide()
         end
     end
-end
-
---- Updates the class resources
-function addon.UpdateClassResources()
-    if not MinimalUnitFramesDB.enableClassResources or not addon.HasClassResources() then
-        if addon.playerFrame.resourceBar then
-            addon.playerFrame.resourceBar:Hide()
-        end
-        addon.UpdateFrameSize(addon.playerFrame, "player")
-        return
-    end
-
-    if not addon.ClassResources then
-        LoadAddOn("ClassResources")
-    end
-
-    if addon.ClassResources then
-        if addon.playerFrame.resourceBar then
-            addon.playerFrame.resourceBar.dividers = nil
-        end
-        addon.ClassResources:UpdateResourceBar(addon.playerFrame, "player")
-    end
-
-    addon.UpdateFrameSize(addon.playerFrame, "player")
 end
 
 --- Checks if the player has class resources
-function addon.HasClassResources()
+local function HasClassResources()
     local _, class = UnitClass("player")
-    return class == "MONK" or class == "EVOKER"
+    return class == "MONK" or class == "EVOKER" or class == "DEATHKNIGHT"
+end
+
+--- Updates the class resources
+local function UpdateClassResources()
+    local resourceBar = addon.playerFrame.resourceBar
+
+    if not MinimalUnitFramesDB.enableClassResources or not HasClassResources() then
+        if resourceBar then
+            resourceBar:Hide()
+        end
+    else
+        if not addon.ClassResources then
+            LoadAddOn("ClassResources")
+        end
+
+        if addon.ClassResources then
+            if resourceBar then
+                resourceBar.dividers = nil
+            end
+            addon.ClassResources:UpdateResourceBar(addon.playerFrame, "player")
+        end
+    end
+
+    addon.UpdateFrameSize(addon.playerFrame, "player")
 end
 
 --- Updates the frame
@@ -84,48 +83,41 @@ local function UpdateFrame(frame, unit)
         return
     end
 
-    if UnitIsDeadOrGhost(unit) then
-        health = 0
-        power = 0
-    end
-
     if unit == "targetoftarget" then
         unit = "targettarget"
     end
 
-    local health = UnitHealth(unit)
-    local maxHealth = UnitHealthMax(unit)
-    local power = UnitPower(unit)
-    local maxPower = UnitPowerMax(unit)
-    local healthColor = addon.Util.GetBarColor(unit, true)
-    local powerColor = addon.Util.GetBarColor(unit, false)
-    local absorb = UnitGetTotalAbsorbs(unit) or 0
-    local statusTextDisplay = GetCVar("statusTextDisplay")
-    local Auras = _G["MinimalUnitFrames_Auras"]
+    if UnitIsDeadOrGhost(unit) then
+        frame.healthBar:SetValue(0)
+        frame.powerBar:SetValue(0)
+    else
+        local health = UnitHealth(unit)
+        local maxHealth = UnitHealthMax(unit)
+        local power = UnitPower(unit)
+        local maxPower = UnitPowerMax(unit)
+        local absorb = UnitGetTotalAbsorbs(unit) or 0
 
-    frame.healthText:SetText(addon.Util.FormatBarText(health, maxHealth, unit))
-    frame.powerText:SetText(addon.Util.FormatBarText(power, maxPower, unit))
-    frame.absorbBar:SetWidth(frame.healthBar:GetWidth() * (absorb / maxHealth))
-    frame.absorbBar:SetMinMaxValues(0, maxHealth)
-    frame.absorbBar:SetValue(absorb)
-    frame.healthBar:SetMinMaxValues(0, maxHealth)
-    frame.healthBar:SetValue(health)
-    frame.powerBar:SetMinMaxValues(0, maxPower)
-    frame.powerBar:SetValue(power)
-    frame.healthBar:SetStatusBarColor(unpack(healthColor))
-    frame.powerBar:SetStatusBarColor(unpack(powerColor))
+        frame.healthText:SetText(addon.Util.FormatBarText(health, maxHealth, unit))
+        frame.powerText:SetText(addon.Util.FormatBarText(power, maxPower, unit))
+        frame.absorbBar:SetWidth(frame.healthBar:GetWidth() * (absorb / maxHealth))
+        frame.absorbBar:SetMinMaxValues(0, maxHealth)
+        frame.absorbBar:SetValue(absorb)
+        frame.healthBar:SetMinMaxValues(0, maxHealth)
+        frame.healthBar:SetValue(health)
+        frame.powerBar:SetMinMaxValues(0, maxPower)
+        frame.powerBar:SetValue(power)
+        frame.healthBar:SetStatusBarColor(unpack(addon.Util.GetBarColor(unit, true)))
+        frame.powerBar:SetStatusBarColor(unpack(addon.Util.GetBarColor(unit, false)))
+    end
+
     frame.nameText:SetText(UnitName(unit))
     frame.levelText:SetText(UnitLevel(unit))
 
-    if Auras and Auras.Update then
-        Auras:Update(frame, unit)
+    if addon.Auras and addon.Auras.Update then
+        addon.Auras:Update(frame, unit)
     end
 
-    if unit == "player" and addon.ClassResources then
-        addon.ClassResources:UpdateResourceBar(frame, unit)
-    end
-
-    if (MinimalUnitFramesDB.enableClassResources and addon:HasClassResources() and unit == "player" and addon.ClassResources) then
+    if addon.ClassResources and unit == "player" and MinimalUnitFramesDB.enableClassResources and HasClassResources() then
         addon.ClassResources:UpdateResourceBar(frame, unit)
     end
 end
@@ -240,16 +232,15 @@ local function CreateUnitFrame(unit)
     end)
 
     -- Auras
-    local Auras = _G["MinimalUnitFrames_Auras"]
-    if Auras and Auras.Create then
-        Auras:Create(frame)
+    if addon.Auras and addon.Auras.Create then
+        addon.Auras:Create(frame)
     end
     frame:RegisterUnitEvent("UNIT_AURA", unit)
     frame:SetScript("OnEvent", function(self, event, ...)
         if event == "UNIT_AURA" then
             local unitId = ...
-            if unitId == unit and Auras and Auras.Update then
-                Auras:Update(self, unit)
+            if unitId == unit and addon.Auras and addon.Auras.Update then
+                addon.Auras:Update(self, unit)
             end
         end
     end)
@@ -555,17 +546,9 @@ function addon.UpdateFramesVisibility()
     local function updateFrameVisibility(frame, unit)
         local unitKey = unit:gsub(" ", ""):lower()
         local showOption = MinimalUnitFramesDB["show" .. unitKey:gsub("^%l", string.upper) .. "Frame"]
-        if showOption then
-            local unitToCheck = unit
-            if unit == "targetoftarget" then
-                unitToCheck = "targettarget"
-            end
-            if unit == "player" or UnitExists(unitToCheck) then
-                frame:Show()
-                UpdateFrame(frame, unit)
-            else
-                frame:Hide()
-            end
+        if showOption and (unit == "player" or UnitExists(unit == "targetoftarget" and "targettarget" or unit)) then
+            frame:Show()
+            UpdateFrame(frame, unit)
         else
             frame:Hide()
         end
@@ -601,7 +584,8 @@ function addon.UpdateAllFrames()
     UpdateFrame(targetoftargetFrame, "targetoftarget")
     UpdateFrame(petFrame, "pet")
     UpdateFrame(petTargetFrame, "pettarget")
-    if addon.ClassResources then
+
+    if addon.ClassResources and MinimalUnitFramesDB.enableClassResources and HasClassResources() then
         addon.ClassResources:UpdateResourceBar(playerFrame, "player")
     end
 end
@@ -620,26 +604,28 @@ function addon.ToggleBlizzardFrames(show)
     end
 
     local function ToggleUnitFrameVisibility(frame, unit)
-        if show then
-            if UnitExists(unit) then
-                frame:Show()
+        if frame then
+            if show then
+                if UnitExists(unit) then
+                    frame:Show()
+                else
+                    frame:Hide()
+                end
             else
                 frame:Hide()
             end
-        else
-            frame:Hide()
         end
     end
 
     SetFrameState(PlayerFrame)
     SetFrameState(TargetFrame)
-    SetFrameState(TargettargetFrame)
+    SetFrameState(TargetTargetFrame)
     SetFrameState(PetFrame)
     SetFrameState(FocusFrame)
 
     if show then
         ToggleUnitFrameVisibility(TargetFrame, "target")
-        ToggleUnitFrameVisibility(TargettargetFrame, "targetoftarget")
+        ToggleUnitFrameVisibility(TargetTargetFrame, "targettarget")
         ToggleUnitFrameVisibility(PetFrame, "pet")
         ToggleUnitFrameVisibility(FocusFrame, "focus")
 
@@ -807,28 +793,13 @@ local function OnEvent(self, event, arg1, arg2)
         ForceUpdateText()
     elseif event == "PLAYER_TARGET_CHANGED" or event == "UNIT_PET" or event == "UNIT_TARGET" then
         addon.UpdateFramesVisibility()
+        addon.ToggleBlizzardFrames(MinimalUnitFramesDB.showBlizzardFrames)
     elseif event == "UNIT_HEALTH" or event == "UNIT_POWER_UPDATE" or event == "UNIT_DISPLAYPOWER" or event == "UNIT_LEVEL" or event == "UNIT_NAME_UPDATE" or event == "UNIT_ABSORB_AMOUNT_CHANGED" then
-        if arg1 == "player" then
-            UpdateFrame(playerFrame, "player")
-        elseif arg1 == "target" then
-            UpdateFrame(targetFrame, "target")
-            if UnitExists("targettarget") then
-                UpdateFrame(targetoftargetFrame, "targetoftarget")
-            else
-                targetoftargetFrame:Hide()
-            end
-        elseif arg1 == "pet" then
-            UpdateFrame(petFrame, "pet")
-        elseif arg1 == "targettarget" then
-            if UnitExists("targettarget") then
-                UpdateFrame(targetoftargetFrame, "targetoftarget")
-            else
-                targetoftargetFrame:Hide()
-            end
-        elseif arg1 == "pettarget" then
-            UpdateFrame(petTargetFrame, "pettarget")
+        if arg1 == "player" or arg1 == "target" or arg1 == "targettarget" or arg1 == "pet" or arg1 == "pettarget" then
+            UpdateFrame(addon[arg1 .. "Frame"], arg1)
         end
         addon.UpdateFramesVisibility()
+        addon.ToggleBlizzardFrames(MinimalUnitFramesDB.showBlizzardFrames)
     elseif event == "PLAYER_ENTERING_WORLD" or event == "ZONE_CHANGED_NEW_AREA" or event == "PLAYER_REGEN_ENABLED" or event == "GROUP_ROSTER_UPDATE" then
         C_Timer.After(0.1, function()
             addon.ToggleBlizzardFrames(MinimalUnitFramesDB.showBlizzardFrames)
@@ -836,6 +807,7 @@ local function OnEvent(self, event, arg1, arg2)
         end)
     elseif event == "PLAYER_REGEN_DISABLED" then
         addon.UpdateFramesVisibility()
+        addon.ToggleBlizzardFrames(MinimalUnitFramesDB.showBlizzardFrames)
     elseif event == "PLAYER_SPECIALIZATION_CHANGED" or event == "UNIT_DISPLAYPOWER" then
         if arg1 == "player" then
             UpdateFrame(playerFrame, "player")

@@ -21,3 +21,5 @@ Minimal Unit Frames for Player and Target, with optional modules for Castbar and
 ## License
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details. Feel free to contribute to this project by submitting a pull request!
+
+prepare archive with `zip -r MinimalUnitFrames-VERSION.zip MinimalUnitFrames -x "*.DS_Store" -x "__MACOSX" -x ".*" -x "*/.*"`
