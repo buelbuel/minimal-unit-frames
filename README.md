@@ -1,5 +1,3 @@
-# muf
-
 Minimal Unit Frames for Player and Target, with optional modules for Castbar and Partyframes. Gain back screen real estate, no distracting elements, minimalistic aura display. Type /muf or open the options panel for configuration.
 
 ## Features
