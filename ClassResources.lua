@@ -3,9 +3,32 @@ local addonName, addon = ...
 local ClassResources = {}
 addon.ClassResources = ClassResources
 
-local CLASS_RESOURCES_CONFIG = addon.Config.classResourcesConfig
 local media = addon.Util.FetchMedia
 local formatBarText = addon.Util.FormatBarText
+
+--- Checks if the player has class resources
+function ClassResources:HasClassResources()
+    local _, class = UnitClass("player")
+    return class == "MONK" or class == "EVOKER" or class == "DEATHKNIGHT"
+end
+
+--- Updates the class resources
+function ClassResources:UpdateClassResources()
+    local resourceBar = addon.playerFrame.resourceBar
+
+    if not MinimalUnitFramesDB.enableClassResources or not self:HasClassResources() then
+        if resourceBar then
+            resourceBar:Hide()
+        end
+    else
+        if resourceBar then
+            resourceBar.dividers = nil
+        end
+        self:UpdateResourceBar(addon.playerFrame, "player")
+    end
+
+    addon.UpdateFrameSize(addon.playerFrame, "player")
+end
 
 --- Creates a resource bar
 ---@param frame any UnitFrame

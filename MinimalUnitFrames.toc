@@ -11,6 +11,7 @@
 Config.lua
 Util.lua
 MinimalUnitFrames.lua
+CombatText.lua
 ClassResources.lua
 Auras.lua
 Options.lua

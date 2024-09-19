@@ -325,7 +325,7 @@ local function CreateOptions(frame)
 
     CreateOptionElement(leftColumn, "Checkbox", "Enable Class Resources", "Display class-specific resource bars", function(self)
         MinimalUnitFramesDB.enableClassResources = self:GetChecked()
-        addon.UpdateClassResources()
+        addon.ClassResources:UpdateClassResources()
     end, leftYOffset, MinimalUnitFramesDB.enableClassResources)
     leftYOffset = leftYOffset - 30
 
@@ -430,6 +430,12 @@ local function CreateOptions(frame)
         MinimalUnitFramesDB.showPlayerDebuffs = self:GetChecked()
         addon.UpdateFramesVisibility()
     end, playerLeftY, MinimalUnitFramesDB.showPlayerDebuffs)
+    playerLeftY = playerLeftY - 30
+
+    CreateOptionElement(playerLeftColumn, "Checkbox", "Show Combat Feedback", "Display combat feedback text", function(self)
+        MinimalUnitFramesDB.showCombatFeedback = self:GetChecked()
+        addon.CombatText:UpdateVisibility()
+    end, playerLeftY, MinimalUnitFramesDB.showCombatFeedback)
     playerLeftY = playerLeftY - 50
 
     CreateOptionElement(playerLeftColumn, "Slider", "Aura Button Size", "Adjust the size of the aura buttons", function(self, value)
@@ -450,12 +456,6 @@ local function CreateOptions(frame)
         max = 20,
         step = 1
     })
-    playerLeftY = playerLeftY - 50
-
-    CreateOptionElement(playerLeftColumn, "ColorPicker", "Aura Swipe Color", "Select the swipe color for aura buttons", function(r, g, b, a)
-        MinimalUnitFramesDB.playerAuraSwipeColor = {r, g, b, a}
-        addon.UpdateAllFrames()
-    end, playerLeftY, unpack(MinimalUnitFramesDB.playerAuraSwipeColor or {0, 0, 0, 0.8}))
     playerLeftY = playerLeftY - 50
 
     CreateOptionElement(playerLeftColumn, "Dropdown", "Player Frame Strata", "Set the strata of the Player frame", function(value)
@@ -662,6 +662,12 @@ local function CreateOptions(frame)
     local totRightY = 0
 
     -- Target of Target Frame Options (Left Column)
+    CreateOptionElement(totLeftColumn, "Checkbox", "Use Target of Target Class Colors", "Use class colors for player health bar", function(self)
+        MinimalUnitFramesDB.useClassColorsTargetoftarget = self:GetChecked()
+        addon.UpdateFrame(addon.targetoftargetFrame, "targetoftarget")
+    end, totLeftY, MinimalUnitFramesDB.useClassColorsTargetoftarget)
+    totLeftY = totLeftY - 30
+
     CreateOptionElement(totLeftColumn, "Checkbox", "Show Target of Target Frame", "Display Target of Target frame", function(self)
         MinimalUnitFramesDB.showTargetoftargetFrame = self:GetChecked()
         addon.UpdateFramesVisibility()
@@ -757,6 +763,12 @@ local function CreateOptions(frame)
     local petRightY = 0
 
     -- Pet Frame Options (Left Column)
+    CreateOptionElement(petLeftColumn, "Checkbox", "Use Pet Class Colors", "Use class colors for Pet health bar", function(self)
+        MinimalUnitFramesDB.useClassColorsPet = self:GetChecked()
+        addon.UpdateFrame(addon.petFrame, "pet")
+    end, petLeftY, MinimalUnitFramesDB.useClassColorsPet)
+    petLeftY = petLeftY - 30
+
     CreateOptionElement(petLeftColumn, "Checkbox", "Show Pet Frame", "Display Pet frame", function(self)
         MinimalUnitFramesDB.showPetFrame = self:GetChecked()
         addon.UpdateFramesVisibility()
@@ -852,6 +864,12 @@ local function CreateOptions(frame)
     local petTargetRightY = 0
 
     -- Pet Target Frame Options (Left Column)
+    CreateOptionElement(petTargetLeftColumn, "Checkbox", "Use Pet Target Class Colors", "Use class colors for player health bar", function(self)
+        MinimalUnitFramesDB.useClassColorsPetTarget = self:GetChecked()
+        addon.UpdateFrame(addon.petTargetFrame, "pettarget")
+    end, petTargetLeftY, MinimalUnitFramesDB.useClassColorsPetTarget)
+    petTargetLeftY = petTargetLeftY - 30
+
     CreateOptionElement(petTargetLeftColumn, "Checkbox", "Show Pet Target Frame", "Display Pet Target frame", function(self)
         MinimalUnitFramesDB.showPetTargetFrame = self:GetChecked()
         addon.UpdateFramesVisibility()

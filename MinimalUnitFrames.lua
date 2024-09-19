@@ -8,58 +8,30 @@ MinimalUnitFramesDB.showFrameBackdrop = MinimalUnitFramesDB.showFrameBackdrop or
 local playerFrame, targetFrame, targetoftargetFrame, petFrame, petTargetFrame
 local eventFrame = CreateFrame("Frame")
 
---- Hides Blizzard frames
+--- Hides the default Blizzard frames
 local function SecureHideBlizzardFrames()
-    local framesToHide = {PlayerFrame, TargetFrame, PetFrame, TargetFrameToT, FocusFrame, FocusFrameToT, Boss1TargetFrame, Boss2TargetFrame, Boss3TargetFrame, Boss4TargetFrame, Boss5TargetFrame, ArenaEnemyFrame1, ArenaEnemyFrame2, ArenaEnemyFrame3, ArenaEnemyFrame4, ArenaEnemyFrame5}
+    local framesToHide = {PlayerFrame, TargetFrame, FocusFrame, PetFrame}
+
+    --- Hides a frame
+    ---@param frame any Frame
+    local function hideFrame(frame)
+        if frame then
+            UnregisterUnitWatch(frame)
+            frame:UnregisterAllEvents()
+            frame:Hide()
+            frame:ClearAllPoints()
+            frame:SetPoint("BOTTOMLEFT", UIParent, "TOPLEFT", -400, 500)
+
+            local healthBar = frame.healthBar or _G[frame:GetName() .. "HealthBar"]
+            if healthBar then
+                healthBar:UnregisterAllEvents()
+            end
+        end
+    end
 
     for _, frame in ipairs(framesToHide) do
-        if frame then
-            frame:UnregisterAllEvents()
-            frame:SetScript("OnEvent", nil)
-            frame:SetScript("OnUpdate", nil)
-            frame:Hide()
-            frame.Show = frame.Hide
-        end
+        hideFrame(frame)
     end
-
-    -- Hook the ShowUIPanel function to prevent Blizzard frames from being shown
-    hooksecurefunc("ShowUIPanel", function(frame, force)
-        if frame == PlayerFrame or frame == TargetFrame or frame == PetFrame then
-            if not InCombatLockdown() then
-                frame:Hide()
-            end
-        end
-    end)
-end
-
---- Checks if the player has class resources
-local function HasClassResources()
-    local _, class = UnitClass("player")
-    return class == "MONK" or class == "EVOKER" or class == "DEATHKNIGHT"
-end
-
---- Updates the class resources
-function addon.UpdateClassResources()
-    local resourceBar = addon.playerFrame.resourceBar
-
-    if not MinimalUnitFramesDB.enableClassResources or not HasClassResources() then
-        if resourceBar then
-            resourceBar:Hide()
-        end
-    else
-        if not addon.ClassResources then
-            LoadAddOn("ClassResources")
-        end
-
-        if addon.ClassResources then
-            if resourceBar then
-                resourceBar.dividers = nil
-            end
-            addon.ClassResources:UpdateResourceBar(addon.playerFrame, "player")
-        end
-    end
-
-    addon.UpdateFrameSize(addon.playerFrame, "player")
 end
 
 --- Sets up the frame
@@ -175,7 +147,6 @@ local function CreateUnitFrame(unit)
     if addon.Auras and addon.Auras.Create then
         addon.Auras:Create(frame)
     end
-    frame:RegisterUnitEvent("UNIT_AURA", unit)
     frame:SetScript("OnEvent", function(self, event, ...)
         if event == "UNIT_AURA" then
             local unitId = ...
@@ -184,12 +155,25 @@ local function CreateUnitFrame(unit)
             end
         end
     end)
+    frame:RegisterUnitEvent("UNIT_AURA", unit)
 
     -- Update Frame position and strata
     frame:SetFrameStrata(MinimalUnitFramesDB.strata or addon.Config.defaultConfig.strata)
     addon.UpdateFramePosition(frame, unit)
     addon.UpdateFrame(frame, unit)
     frame:Show()
+
+    if unit == "player" then
+        addon.CombatText:CreateCombatFeedback(frame)
+        frame:RegisterEvent("UNIT_COMBAT")
+        frame:RegisterEvent("PLAYER_REGEN_DISABLED")
+        frame:RegisterEvent("PLAYER_REGEN_ENABLED")
+        frame:HookScript("OnEvent", function(self, event, ...)
+            if MinimalUnitFramesDB.showCombatFeedback then
+                addon.CombatText:OnEvent(self, event, ...)
+            end
+        end)
+    end
 
     return frame
 end
@@ -206,6 +190,10 @@ function addon.UpdateFrame(frame, unit)
         unit = "targettarget"
     end
 
+    --- Sets the value of a status bar
+    ---@param statusBar any StatusBar
+    ---@param value number
+    ---@param maxValue number
     local function SafeSetValue(statusBar, value, maxValue)
         if not InCombatLockdown() then
             statusBar:SetMinMaxValues(0, maxValue)
@@ -236,7 +224,7 @@ function addon.UpdateFrame(frame, unit)
         if MinimalUnitFramesDB.useClassColorsPlayer then
             frame.healthBar:SetStatusBarColor(unpack(addon.Util.GetBarColor(unit, true)))
         else
-            frame.healthBar:SetStatusBarColor(unpack(addon.Config.defaultConfig.customColorTarget))
+            frame.healthBar:SetStatusBarColor(unpack(addon.Config.defaultConfig.customColorPlayer))
         end
     elseif unit == "target" then
         if MinimalUnitFramesDB.useClassColorsTarget then
@@ -244,8 +232,25 @@ function addon.UpdateFrame(frame, unit)
         else
             frame.healthBar:SetStatusBarColor(unpack(addon.Config.defaultConfig.customColorTarget))
         end
-    else
-        frame.healthBar:SetStatusBarColor(unpack(addon.Util.GetBarColor(unit, true)))
+    elseif unit == "targettarget" then
+        if MinimalUnitFramesDB.useClassColorsTargetoftarget then
+            local color = addon.Util.GetBarColor(unit, true)
+            frame.healthBar:SetStatusBarColor(unpack(color))
+        else
+            frame.healthBar:SetStatusBarColor(unpack(addon.Config.defaultConfig.customColorTargetoftarget))
+        end
+    elseif unit == "pet" then
+        if MinimalUnitFramesDB.useClassColorsPet then
+            frame.healthBar:SetStatusBarColor(unpack(addon.Util.GetBarColor(unit, true)))
+        else
+            frame.healthBar:SetStatusBarColor(unpack(addon.Config.defaultConfig.customColorPet))
+        end
+    elseif unit == "pettarget" then
+        if MinimalUnitFramesDB.useClassColorsPetTarget then
+            frame.healthBar:SetStatusBarColor(unpack(addon.Util.GetBarColor(unit, true)))
+        else
+            frame.healthBar:SetStatusBarColor(unpack(addon.Config.defaultConfig.customColorPetTarget))
+        end
     end
     frame.powerBar:SetStatusBarColor(unpack(addon.Util.GetBarColor(unit, false)))
 
@@ -256,7 +261,7 @@ function addon.UpdateFrame(frame, unit)
         addon.Auras:Update(frame, unit)
     end
 
-    if addon.ClassResources and unit == "player" and MinimalUnitFramesDB.enableClassResources and HasClassResources() then
+    if addon.ClassResources and unit == "player" and MinimalUnitFramesDB.enableClassResources and addon.ClassResources:HasClassResources() then
         addon.ClassResources:UpdateResourceBar(frame, unit)
     end
 
@@ -345,6 +350,12 @@ end
 ---@param frame any UnitFrame
 ---@param unit string
 function addon.UpdateFramePosition(frame, unit)
+    ---@param frame any UnitFrame
+    ---@param point string
+    ---@param relativeFrame any
+    ---@param relativePoint string
+    ---@param offsetX number
+    ---@param offsetY number
     local function SafeSetPoint(frame, point, relativeFrame, relativePoint, offsetX, offsetY)
         if not InCombatLockdown() then
             frame:ClearAllPoints()
@@ -410,7 +421,7 @@ function addon.UpdateFramePosition(frame, unit)
     elseif anchor == "BOTTOMRIGHT" then
         point, relativeFrame, relativePoint = "BOTTOMRIGHT", UIParent, "BOTTOMRIGHT"
         offsetX, offsetY = -xPos, yPos
-    else -- CENTER
+    else
         point, relativeFrame, relativePoint = "CENTER", UIParent, "CENTER"
         offsetX, offsetY = xPos, yPos
     end
@@ -477,7 +488,10 @@ function addon.UpdateFont()
         font = addon.Util.FetchMedia("fonts", addon.Config.defaultConfig.font)
     end
 
-    local function updateFontForFrame(frame)
+    --- Updates the font for a frame
+    ---@param frame any UnitFrame
+    ---@param unit string
+    local function updateFontForFrame(frame, unit)
         if frame.nameText then
             frame.nameText:SetFont(font, fontSize, fontStyle)
         end
@@ -504,11 +518,19 @@ function addon.UpdateFont()
     if addon.ClassResources and addon.ClassResources.UpdateFont then
         addon.ClassResources:UpdateFont(font, fontSize, fontStyle)
     end
+
+    if addon.playerFrame and addon.playerFrame.feedbackText then
+        addon.playerFrame.feedbackText:SetFont(MinimalUnitFramesDB.font or addon.Config.defaultConfig.font, (MinimalUnitFramesDB.fontSize or addon.Config.defaultConfig.fontSize) * 1.5, MinimalUnitFramesDB.fontStyle or addon.Config.defaultConfig.fontStyle)
+    end
 end
 
 --- Updates the text visibility
 ---@param unit string
 function addon.UpdateFrameTextVisibility(unit)
+    --- Update the visibility of the text on the frames
+    ---@param frame any UnitFrame
+    ---@param showText boolean
+    ---TODO: Pet frame text is not working
     local function updateFrameText(frame, showText)
         frame.healthText:SetShown(showText)
         frame.powerText:SetShown(showText)
@@ -568,10 +590,25 @@ end
 
 --- Updates the frames visibility
 function addon.UpdateFramesVisibility()
+    --- Update the visibility of the frames
+    ---@param frame any UnitFrame
+    ---@param unit string
+    ---TODO: Pet target frame visibility is not working
     local function updateFrameVisibility(frame, unit)
+        if not frame then
+            return
+        end
+
         local unitKey = unit:gsub(" ", ""):lower()
         local showOption = MinimalUnitFramesDB["show" .. unitKey:gsub("^%l", string.upper) .. "Frame"]
         local shouldShow = showOption and (unit == "player" or UnitExists(unit == "targetoftarget" and "targettarget" or unit))
+
+        if InCombatLockdown() then
+            C_Timer.After(0.1, function()
+                updateFrameVisibility(frame, unit)
+            end)
+            return
+        end
 
         if shouldShow then
             frame:Show()
@@ -581,19 +618,19 @@ function addon.UpdateFramesVisibility()
         end
     end
 
-    local function updateAllFrames()
-        updateFrameVisibility(addon.playerFrame, "player")
-        updateFrameVisibility(addon.targetFrame, "target")
-        updateFrameVisibility(addon.targetoftargetFrame, "targetoftarget")
-        updateFrameVisibility(addon.petFrame, "pet")
-        updateFrameVisibility(addon.petTargetFrame, "pettarget")
-    end
+    updateFrameVisibility(addon.playerFrame, "player")
+    updateFrameVisibility(addon.targetFrame, "target")
+    updateFrameVisibility(addon.targetoftargetFrame, "targetoftarget")
+    updateFrameVisibility(addon.petFrame, "pet")
+    updateFrameVisibility(addon.petTargetFrame, "pettarget")
+end
 
-    if InCombatLockdown() then
-        C_Timer.After(0, updateAllFrames)
-    else
-        updateAllFrames()
-    end
+--- Handles the target change
+---TODO: There must be a more efficient way
+function addon.HandleTargetChange()
+    addon.UpdateFrame(addon.targetFrame, "target")
+    addon.UpdateFrame(addon.targetoftargetFrame, "targetoftarget")
+    addon.UpdateFramesVisibility()
 end
 
 --- Updates the frame power bar visibility
@@ -620,8 +657,19 @@ function addon.UpdateAllFrames()
     addon.UpdateFrame(petFrame, "pet")
     addon.UpdateFrame(petTargetFrame, "pettarget")
 
-    if addon.ClassResources and MinimalUnitFramesDB.enableClassResources and HasClassResources() then
+    if addon.ClassResources and MinimalUnitFramesDB.enableClassResources and addon.ClassResources:HasClassResources() then
         addon.ClassResources:UpdateResourceBar(playerFrame, "player")
+    end
+end
+
+--- Updates the combat text visibility
+function addon.UpdateCombatTextVisibility()
+    if addon.playerFrame then
+        if MinimalUnitFramesDB.enablePlayerCombatText then
+            addon.playerFrame.feedbackFrame:Show()
+        else
+            addon.playerFrame.feedbackFrame:Hide()
+        end
     end
 end
 
@@ -631,10 +679,12 @@ local function InitializeAddon()
         MinimalUnitFramesDB = {}
     end
 
+    -- Initialize default values if not present
     MinimalUnitFramesDB.barTexture = MinimalUnitFramesDB.barTexture or addon.Config.defaultConfig.barTexture
     MinimalUnitFramesDB.font = MinimalUnitFramesDB.font or addon.Config.defaultConfig.font
-    MinimalUnitFramesDB.fontsize = MinimalUnitFramesDB.fontsize or addon.Config.defaultConfig.fontsize
-    MinimalUnitFramesDB.fontstyle = MinimalUnitFramesDB.fontstyle or addon.Config.defaultConfig.fontstyle
+    MinimalUnitFramesDB.fontSize = MinimalUnitFramesDB.fontSize or addon.Config.defaultConfig.fontSize
+    MinimalUnitFramesDB.fontStyle = MinimalUnitFramesDB.fontStyle or addon.Config.defaultConfig.fontStyle
+    MinimalUnitFramesDB.showCombatFeedback = MinimalUnitFramesDB.showCombatFeedback or addon.Config.defaultConfig.showCombatFeedback
 
     MinimalUnitFramesDB.showPlayerBuffs = MinimalUnitFramesDB.showPlayerBuffs or addon.Config.defaultConfig.showPlayerBuffs
     MinimalUnitFramesDB.showTargetBuffs = MinimalUnitFramesDB.showTargetBuffs or addon.Config.defaultConfig.showTargetBuffs
@@ -694,15 +744,19 @@ local function InitializeAddon()
     MinimalUnitFramesDB.petTargetStrata = MinimalUnitFramesDB.petTargetStrata or addon.Config.defaultConfig.petTargetStrata
     MinimalUnitFramesDB.petTargetAnchor = MinimalUnitFramesDB.petTargetAnchor or addon.Config.defaultConfig.petTargetAnchor
 
-    MinimalUnitFramesDB.showPlayerFrame = MinimalUnitFramesDB.showPlayerFrame ~= nil and MinimalUnitFramesDB.showPlayerFrame or true
-    MinimalUnitFramesDB.showTargetFrame = MinimalUnitFramesDB.showTargetFrame ~= nil and MinimalUnitFramesDB.showTargetFrame or true
-    MinimalUnitFramesDB.showTargetoftargetFrame = MinimalUnitFramesDB.showTargetoftargetFrame ~= nil and MinimalUnitFramesDB.showTargetoftargetFrame or true
-    MinimalUnitFramesDB.showPetFrame = MinimalUnitFramesDB.showPetFrame ~= nil and MinimalUnitFramesDB.showPetFrame or true
-    MinimalUnitFramesDB.showPetTargetFrame = MinimalUnitFramesDB.showPetTargetFrame ~= nil and MinimalUnitFramesDB.showPetTargetFrame or true
+    MinimalUnitFramesDB.showPlayerFrame = MinimalUnitFramesDB.showPlayerFrame ~= nil and MinimalUnitFramesDB.showPlayerFrame or addon.Config.defaultConfig.showPlayerFrame
+    MinimalUnitFramesDB.showTargetFrame = MinimalUnitFramesDB.showTargetFrame ~= nil and MinimalUnitFramesDB.showTargetFrame or addon.Config.defaultConfig.showTargetFrame
+    MinimalUnitFramesDB.showTargetoftargetFrame = MinimalUnitFramesDB.showTargetoftargetFrame ~= nil and MinimalUnitFramesDB.showTargetoftargetFrame or addon.Config.defaultConfig.showTargetoftargetFrame
+    MinimalUnitFramesDB.showPetFrame = MinimalUnitFramesDB.showPetFrame ~= nil and MinimalUnitFramesDB.showPetFrame or addon.Config.defaultConfig.showPetFrame
+    MinimalUnitFramesDB.showPetTargetFrame = MinimalUnitFramesDB.showPetTargetFrame ~= nil and MinimalUnitFramesDB.showPetTargetFrame or addon.Config.defaultConfig.showPetTargetFrame
 
     MinimalUnitFramesDB.useClassColorsPlayer = MinimalUnitFramesDB.useClassColorsPlayer or addon.Config.defaultConfig.useClassColorsPlayer
     MinimalUnitFramesDB.useClassColorsTarget = MinimalUnitFramesDB.useClassColorsTarget or addon.Config.defaultConfig.useClassColorsTarget
+    MinimalUnitFramesDB.useClassColorsTargetoftarget = MinimalUnitFramesDB.useClassColorsTargetoftarget or addon.Config.defaultConfig.useClassColorsTargetoftarget
+    MinimalUnitFramesDB.useClassColorsPet = MinimalUnitFramesDB.useClassColorsPet or addon.Config.defaultConfig.useClassColorsPet
+    MinimalUnitFramesDB.useClassColorsPetTarget = MinimalUnitFramesDB.useClassColorsPetTarget or addon.Config.defaultConfig.useClassColorsPetTarget
 
+    -- Create frames
     playerFrame = CreateUnitFrame("player")
     targetFrame = CreateUnitFrame("target")
     targetoftargetFrame = CreateUnitFrame("targetoftarget")
@@ -715,6 +769,7 @@ local function InitializeAddon()
     addon.petFrame = petFrame
     addon.petTargetFrame = petTargetFrame
 
+    -- Update frame properties
     addon.UpdateFrameSize(addon.playerFrame, "player")
     addon.UpdateFrameSize(addon.targetFrame, "target")
     addon.UpdateFrameSize(addon.targetoftargetFrame, "targetoftarget")
@@ -752,25 +807,10 @@ local function InitializeAddon()
     SetupFrame(petFrame, "pet")
     SetupFrame(petTargetFrame, "pettarget")
 
-    playerFrame:Show()
-    targetFrame:Show()
-    targetoftargetFrame:Show()
-    petFrame:Show()
-    petTargetFrame:Show()
-
     addon.UpdateFramesVisibility()
     SecureHideBlizzardFrames()
     TargetFrame:HookScript("OnShow", function(self)
         C_Timer.After(0, SecureHideBlizzardFrames)
-    end)
-
-    C_Timer.NewTicker(0.1, function()
-        addon.UpdateFramesVisibility()
-        addon.UpdateFrame(addon.playerFrame, "player")
-        addon.UpdateFrame(addon.targetFrame, "target")
-        addon.UpdateFrame(addon.targetoftargetFrame, "targettarget")
-        addon.UpdateFrame(addon.petFrame, "pet")
-        addon.UpdateFrame(addon.petTargetFrame, "pettarget")
     end)
 end
 
@@ -793,14 +833,14 @@ local function OnEvent(self, event, arg1, arg2)
     elseif event == "PLAYER_ENTERING_WORLD" or event == "PLAYER_REGEN_ENABLED" then
         SecureHideBlizzardFrames()
         addon.UpdateFramesVisibility()
-    elseif event == "PLAYER_TARGET_CHANGED" or event == "UNIT_PET" or event == "UNIT_TARGET" then
-        addon.UpdateFramesVisibility()
-        SecureHideBlizzardFrames()
     elseif event == "PLAYER_TARGET_CHANGED" or event == "UNIT_TARGET" then
+        addon.UpdateFrame(addon.targetFrame, "target")
         addon.UpdateFrame(addon.targetoftargetFrame, "targettarget")
         addon.UpdateFramesVisibility()
     elseif event == "PLAYER_REGEN_DISABLED" then
         addon.UpdateFramesVisibility()
+        addon.UpdateAllFrames()
+        C_Timer.After(0.1, addon.UpdateFramesVisibility)
     elseif event == "PLAYER_SPECIALIZATION_CHANGED" or event == "UNIT_DISPLAYPOWER" then
         if arg1 == "player" then
             addon.UpdateFrame(playerFrame, "player")

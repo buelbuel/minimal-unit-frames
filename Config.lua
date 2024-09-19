@@ -38,8 +38,14 @@ Config.defaultConfig = {
 
     useClassColorsPlayer = true,
     useClassColorsTarget = true,
+    useClassColorsTargetoftarget = true,
+    useClassColorsPet = true,
+    useClassColorsPetTarget = true,
     customColorPlayer = {0, 1, 0, 1},
     customColorTarget = {0, 1, 0, 1},
+    customColorTargetoftarget = {0, 1, 0, 1},
+    customColorPet = {0, 1, 0, 1},
+    customColorPetTarget = {0, 1, 0, 1},
 
     -- Text Options
     font = "FrizQuadrataTT",
@@ -226,6 +232,34 @@ Config.auraConfig = {
 Config.classResourcesConfig = {
     enabled = true,
     showResourceBar = true
+}
+
+Config.combatFeedbackColors = {
+    STANDARD = {
+        r = 1,
+        g = 1,
+        b = 1
+    },
+    MISS = {
+        r = 1,
+        g = 1,
+        b = 1
+    },
+    HEAL = {
+        r = 0,
+        g = 1,
+        b = 0
+    },
+    ENERGIZE = {
+        r = 0.41,
+        g = 0.8,
+        b = 0.94
+    },
+    DAMAGE = {
+        r = 1,
+        g = 0,
+        b = 0
+    }
 }
 
 return Config

@@ -95,16 +95,18 @@ end
 ---@param isHealth boolean
 function addon.Util.GetBarColor(unit, isHealth)
     if unit == "targetoftarget" then
-        unit = "targettarget" -- WoW API still uses "targettarget"
+        unit = "targettarget"
     end
     if isHealth then
         local _, class = UnitClass(unit)
         local colors = addon.Config.classColors
-        return colors[class] or {1, 1, 1}
+        local color = colors[class] or {1, 1, 1}
+        return color
     else
         local _, powerType = UnitPowerType(unit)
         local powerColors = addon.Config.powerColors
-        return powerColors[powerType] or {1, 1, 1}
+        local color = powerColors[powerType] or {1, 1, 1}
+        return color
     end
 end
 
