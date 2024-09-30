@@ -100,12 +100,12 @@ function addon.Util.GetBarColor(unit, isHealth)
     if isHealth then
         local _, class = UnitClass(unit)
         local colors = addon.Config.classColors
-        local color = colors[class] or {1, 1, 1}
+        local color = colors[class] or addon.Config.classColors.DEFAULT
         return color
     else
         local _, powerType = UnitPowerType(unit)
         local powerColors = addon.Config.powerColors
-        local color = powerColors[powerType] or {1, 1, 1}
+        local color = powerColors[powerType] or addon.Config.powerColors.DEFAULT
         return color
     end
 end
@@ -135,4 +135,34 @@ function addon.Util.GetFrameDimensions(unit)
         height = addon.Config.defaultConfig.height
     end
     return width, height
+end
+
+--- Loads a module
+---@param moduleName string
+function addon.Util.LoadModule(moduleName)
+    if addon[moduleName] then
+        return true
+    end
+
+    local addonName = "MinimalUnitFrames_" .. moduleName
+    local loaded, reason = LoadAddOn(addonName)
+
+    if not loaded then
+        if reason == "MISSING" then
+            print("Module " .. moduleName .. " is missing. Please ensure it's installed and enabled in the AddOns menu.")
+        elseif reason == "DISABLED" then
+            print("Module " .. moduleName .. " is disabled. Please enable it in the AddOns menu.")
+        else
+            print("Failed to load " .. moduleName .. " module: " .. tostring(reason))
+        end
+        return false
+    end
+
+    if addon[moduleName] and addon[moduleName].Initialize then
+        addon[moduleName]:Initialize()
+    elseif not addon[moduleName] then
+        print("Module " .. moduleName .. " loaded but not initialized. Check the module file for errors.")
+        return false
+    end
+    return true
 end

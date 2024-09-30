@@ -6,14 +6,25 @@ addon.ClassResources = ClassResources
 local media = addon.Util.FetchMedia
 local formatBarText = addon.Util.FormatBarText
 
+--- Initializes the class resources
+function ClassResources:Initialize()
+    if self:HasClassResources() then
+        self:UpdateClassResources()
+    end
+end
+
 --- Checks if the player has class resources
 function ClassResources:HasClassResources()
     local _, class = UnitClass("player")
-    return class == "MONK" or class == "EVOKER" or class == "DEATHKNIGHT"
+    return class == "MONK" or class == "EVOKER" or class == "DEATHKNIGHT" or class == "WARLOCK" or class == "PALADIN" or class == "ROGUE" or class == "DRUID" or class == "PRIEST" or class == "MAGE"
 end
 
 --- Updates the class resources
 function ClassResources:UpdateClassResources()
+    if not addon.playerFrame then
+        return
+    end
+
     local resourceBar = addon.playerFrame.resourceBar
 
     if not MinimalUnitFramesDB.enableClassResources or not self:HasClassResources() then
@@ -96,6 +107,36 @@ function ClassResources:UpdateResourceBar(frame, unit)
                 currentResource = currentResource + 1
             end
         end
+    elseif class == "WARLOCK" then
+        resourceType = "SOUL_SHARDS"
+        currentResource = UnitPower(unit, Enum.PowerType.SoulShards)
+        maxResource = UnitPowerMax(unit, Enum.PowerType.SoulShards)
+        resourceColor = {0.58, 0.51, 0.79}
+    elseif class == "PALADIN" then
+        resourceType = "HOLY_POWER"
+        currentResource = UnitPower(unit, Enum.PowerType.HolyPower)
+        maxResource = UnitPowerMax(unit, Enum.PowerType.HolyPower)
+        resourceColor = {0.95, 0.90, 0.60}
+    elseif class == "ROGUE" or (class == "DRUID" and spec == SPEC_DRUID_FERAL) then
+        resourceType = "COMBO_POINTS"
+        currentResource = UnitPower(unit, Enum.PowerType.ComboPoints)
+        maxResource = UnitPowerMax(unit, Enum.PowerType.ComboPoints)
+        resourceColor = {1.00, 0.96, 0.41}
+    elseif class == "DRUID" and spec == SPEC_DRUID_BALANCE then
+        resourceType = "ASTRAL_POWER"
+        currentResource = UnitPower(unit, Enum.PowerType.LunarPower)
+        maxResource = UnitPowerMax(unit, Enum.PowerType.LunarPower)
+        resourceColor = {0.30, 0.52, 0.90}
+    elseif class == "PRIEST" and spec == SPEC_PRIEST_SHADOW then
+        resourceType = "INSANITY"
+        currentResource = UnitPower(unit, Enum.PowerType.Insanity)
+        maxResource = UnitPowerMax(unit, Enum.PowerType.Insanity)
+        resourceColor = {0.70, 0.40, 0.90}
+    elseif class == "MAGE" and spec == SPEC_MAGE_ARCANE then
+        resourceType = "ARCANE_CHARGES"
+        currentResource = UnitPower(unit, Enum.PowerType.ArcaneCharges)
+        maxResource = UnitPowerMax(unit, Enum.PowerType.ArcaneCharges)
+        resourceColor = {0.41, 0.80, 0.94}
     end
 
     if resourceType then
@@ -103,7 +144,7 @@ function ClassResources:UpdateResourceBar(frame, unit)
         frame.resourceBar:SetValue(currentResource)
         frame.resourceBar:SetStatusBarColor(unpack(resourceColor))
 
-        if resourceType == "CHI" or resourceType == "ESSENCE" or resourceType == "RUNES" then
+        if resourceType == "CHI" or resourceType == "ESSENCE" or resourceType == "RUNES" or resourceType == "SOUL_SHARDS" or resourceType == "HOLY_POWER" or resourceType == "COMBO_POINTS" or resourceType == "ARCANE_CHARGES" then
             if frame.resourceBar.dividers then
                 for _, divider in ipairs(frame.resourceBar.dividers) do
                     divider:Hide()

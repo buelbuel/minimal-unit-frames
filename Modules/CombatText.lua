@@ -6,7 +6,7 @@ addon.CombatText = CombatText
 --- Updates the visibility of the combat text
 function CombatText:UpdateVisibility()
     if addon.playerFrame and addon.playerFrame.feedbackFrame then
-        if MinimalUnitFramesDB.showCombatFeedback then
+        if MinimalUnitFramesDB.showCombatFeedback and UnitAffectingCombat("player") then
             addon.playerFrame.feedbackFrame:Show()
         else
             addon.playerFrame.feedbackFrame:Hide()
@@ -52,16 +52,16 @@ function CombatText:CreateCombatFeedback(frame)
         local text, color
         if type == "ENTERING_COMBAT" then
             text = "COMBAT"
-            color = addon.Config.combatFeedbackColors.STANDARD
+            color = addon.Config.combatFeedbackConfig.colors.STANDARD
         elseif type == "LEAVING_COMBAT" then
             text = "LEAVING COMBAT"
-            color = addon.Config.combatFeedbackColors.STANDARD
+            color = addon.Config.combatFeedbackConfig.colors.STANDARD
         else
             if not amount or amount == 0 then
                 return
             end
             text = tostring(amount)
-            color = addon.Config.combatFeedbackColors[type] or addon.Config.combatFeedbackColors.STANDARD
+            color = addon.Config.combatFeedbackConfig.colors[type] or addon.Config.combatFeedbackConfig.colors.STANDARD
         end
 
         local fontHeight = (MinimalUnitFramesDB.fontSize or addon.Config.defaultConfig.fontSize) * 2

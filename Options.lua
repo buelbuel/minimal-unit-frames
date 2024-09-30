@@ -325,7 +325,12 @@ local function CreateOptions(frame)
 
     CreateOptionElement(leftColumn, "Checkbox", "Enable Class Resources", "Display class-specific resource bars", function(self)
         MinimalUnitFramesDB.enableClassResources = self:GetChecked()
-        addon.ClassResources:UpdateClassResources()
+        if MinimalUnitFramesDB.enableClassResources then
+            addon.Util.LoadModule("ClassResources")
+        end
+        if addon.ClassResources then
+            addon.ClassResources:UpdateClassResources()
+        end
     end, leftYOffset, MinimalUnitFramesDB.enableClassResources)
     leftYOffset = leftYOffset - 30
 
@@ -422,40 +427,35 @@ local function CreateOptions(frame)
 
     CreateOptionElement(playerLeftColumn, "Checkbox", "Show Player Buffs", "Display buffs on Player frame", function(self)
         MinimalUnitFramesDB.showPlayerBuffs = self:GetChecked()
-        addon.UpdateFramesVisibility()
+        if MinimalUnitFramesDB.showPlayerBuffs then
+            addon.Util.LoadModule("Auras")
+        end
+        if addon.Auras then
+            addon.UpdateFramesVisibility()
+        end
     end, playerLeftY, MinimalUnitFramesDB.showPlayerBuffs)
     playerLeftY = playerLeftY - 30
 
     CreateOptionElement(playerLeftColumn, "Checkbox", "Show Player Debuffs", "Display debuffs on Player frame", function(self)
         MinimalUnitFramesDB.showPlayerDebuffs = self:GetChecked()
-        addon.UpdateFramesVisibility()
+        if MinimalUnitFramesDB.showPlayerDebuffs then
+            addon.Util.LoadModule("Auras")
+        end
+        if addon.Auras then
+            addon.UpdateFramesVisibility()
+        end
     end, playerLeftY, MinimalUnitFramesDB.showPlayerDebuffs)
     playerLeftY = playerLeftY - 30
 
     CreateOptionElement(playerLeftColumn, "Checkbox", "Show Combat Feedback", "Display combat feedback text", function(self)
         MinimalUnitFramesDB.showCombatFeedback = self:GetChecked()
-        addon.CombatText:UpdateVisibility()
+        if MinimalUnitFramesDB.showCombatFeedback then
+            addon.Util.LoadModule("CombatText")
+        end
+        if addon.CombatText then
+            addon.CombatText:UpdateVisibility()
+        end
     end, playerLeftY, MinimalUnitFramesDB.showCombatFeedback)
-    playerLeftY = playerLeftY - 50
-
-    CreateOptionElement(playerLeftColumn, "Slider", "Aura Button Size", "Adjust the size of the aura buttons", function(self, value)
-        MinimalUnitFramesDB.playerAuraButtonSize = value
-        addon.UpdateAllFrames()
-    end, playerLeftY, MinimalUnitFramesDB.playerAuraButtonSize or addon.Config.auraConfig.buffs.size, {
-        min = 10,
-        max = 50,
-        step = 1
-    })
-    playerLeftY = playerLeftY - 50
-
-    CreateOptionElement(playerLeftColumn, "Slider", "Aura Buttons Per Row", "Adjust the number of aura buttons per row", function(self, value)
-        MinimalUnitFramesDB.playerAuraButtonsPerRow = value
-        addon.UpdateAllFrames()
-    end, playerLeftY, MinimalUnitFramesDB.playerAuraButtonsPerRow or addon.Config.auraConfig.buffs.perRow, {
-        min = 1,
-        max = 20,
-        step = 1
-    })
     playerLeftY = playerLeftY - 50
 
     CreateOptionElement(playerLeftColumn, "Dropdown", "Player Frame Strata", "Set the strata of the Player frame", function(value)
@@ -512,6 +512,57 @@ local function CreateOptions(frame)
         max = 600,
         step = 1
     })
+    playerRightY = playerRightY - 85
+
+    CreateOptionElement(playerRightColumn, "Slider", "Player Buff Size", "Adjust the size of player buff icons", function(self, value)
+        MinimalUnitFramesDB.playerBuffSize = value
+        addon.UpdateAllFrames()
+    end, playerRightY, MinimalUnitFramesDB.playerBuffSize or addon.Config.auraConfig.player.buffs.size, {
+        min = 10,
+        max = 50,
+        step = 1
+    })
+    playerRightY = playerRightY - 50
+
+    CreateOptionElement(playerRightColumn, "Slider", "Player Debuff Size", "Adjust the size of player debuff icons", function(self, value)
+        MinimalUnitFramesDB.playerDebuffSize = value
+        addon.UpdateAllFrames()
+    end, playerRightY, MinimalUnitFramesDB.playerDebuffSize or addon.Config.auraConfig.player.debuffs.size, {
+        min = 10,
+        max = 50,
+        step = 1
+    })
+    playerRightY = playerRightY - 50
+
+    CreateOptionElement(playerRightColumn, "Slider", "Player Aura Buttons Per Row", "Adjust the number of aura buttons per row", function(self, value)
+        MinimalUnitFramesDB.playerAuraButtonsPerRow = value
+        addon.UpdateAllFrames()
+    end, playerRightY, MinimalUnitFramesDB.playerAuraButtonsPerRow or addon.Config.auraConfig.player.buffs.perRow, {
+        min = 1,
+        max = 20,
+        step = 1
+    })
+    playerRightY = playerRightY - 50
+
+    CreateOptionElement(playerRightColumn, "Slider", "Player Buff Limit", "Set the maximum number of buffs to display", function(self, value)
+        MinimalUnitFramesDB.playerBuffLimit = value
+        addon.UpdateAllFrames()
+    end, playerRightY, MinimalUnitFramesDB.playerBuffLimit or 32, {
+        min = 0,
+        max = 40,
+        step = 1
+    })
+    playerRightY = playerRightY - 50
+
+    CreateOptionElement(playerRightColumn, "Slider", "Player Debuff Limit", "Set the maximum number of debuffs to display", function(self, value)
+        MinimalUnitFramesDB.playerDebuffLimit = value
+        addon.UpdateAllFrames()
+    end, playerRightY, MinimalUnitFramesDB.playerDebuffLimit or 16, {
+        min = 0,
+        max = 40,
+        step = 1
+    })
+    playerRightY = playerRightY - 50
 
     -- *********************
     -- Target Frame Options
@@ -561,34 +612,24 @@ local function CreateOptions(frame)
 
     CreateOptionElement(targetLeftColumn, "Checkbox", "Show Target Buffs", "Display buffs on Target frame", function(self)
         MinimalUnitFramesDB.showTargetBuffs = self:GetChecked()
-        addon.UpdateFramesVisibility()
+        if MinimalUnitFramesDB.showTargetBuffs then
+            addon.Util.LoadModule("Auras")
+        end
+        if addon.Auras then
+            addon.UpdateFramesVisibility()
+        end
     end, targetLeftY, MinimalUnitFramesDB.showTargetBuffs)
     targetLeftY = targetLeftY - 30
 
     CreateOptionElement(targetLeftColumn, "Checkbox", "Show Target Debuffs", "Display debuffs on Target frame", function(self)
-        MinimalUnitFramesDB.showPlayerDebuffs = self:GetChecked()
-        addon.UpdateFramesVisibility()
+        MinimalUnitFramesDB.showTargetDebuffs = self:GetChecked()
+        if MinimalUnitFramesDB.showTargetDebuffs then
+            addon.Util.LoadModule("Auras")
+        end
+        if addon.Auras then
+            addon.UpdateFramesVisibility()
+        end
     end, targetLeftY, MinimalUnitFramesDB.showTargetDebuffs)
-    targetLeftY = targetLeftY - 50
-
-    CreateOptionElement(targetLeftColumn, "Slider", "Aura Button Size", "Adjust the size of the aura buttons", function(self, value)
-        MinimalUnitFramesDB.targetAuraButtonSize = value
-        addon.UpdateAllFrames()
-    end, targetLeftY, MinimalUnitFramesDB.targetAuraButtonSize or addon.Config.auraConfig.buffs.size, {
-        min = 10,
-        max = 50,
-        step = 1
-    })
-    targetLeftY = targetLeftY - 50
-
-    CreateOptionElement(targetLeftColumn, "Slider", "Aura Buttons Per Row", "Adjust the number of aura buttons per row", function(self, value)
-        MinimalUnitFramesDB.targetAuraButtonsPerRow = value
-        addon.UpdateAllFrames()
-    end, targetLeftY, MinimalUnitFramesDB.targetAuraButtonsPerRow or addon.Config.auraConfig.buffs.perRow, {
-        min = 1,
-        max = 20,
-        step = 1
-    })
     targetLeftY = targetLeftY - 50
 
     CreateOptionElement(targetLeftColumn, "Dropdown", "Target Frame Strata", "Set the strata of the Target frame", function(value)
@@ -596,6 +637,14 @@ local function CreateOptions(frame)
         addon.UpdateFrameStrata(addon.targetFrame, "target")
     end, targetLeftY, MinimalUnitFramesDB.targetStrata, {
         items = addon.Util.GetMediaList("stratas")
+    })
+    targetLeftY = targetLeftY - 50
+
+    CreateOptionElement(targetLeftColumn, "Dropdown", "Anchored To", "Choose where to anchor the Target frame", function(value)
+        MinimalUnitFramesDB.targetAnchoredTo = value
+        addon.UpdateFramePosition(addon.targetFrame, "target")
+    end, targetLeftY, MinimalUnitFramesDB.targetAnchoredTo or "Screen", {
+        items = {"Screen", "Player Frame"}
     })
     targetLeftY = targetLeftY - 50
 
@@ -645,6 +694,57 @@ local function CreateOptions(frame)
         max = 600,
         step = 1
     })
+    targetRightY = targetRightY - 85
+
+    CreateOptionElement(targetRightColumn, "Slider", "Target Buff Size", "Adjust the size of target buff icons", function(self, value)
+        MinimalUnitFramesDB.targetBuffSize = value
+        addon.UpdateAllFrames()
+    end, targetRightY, MinimalUnitFramesDB.targetBuffSize or addon.Config.auraConfig.target.buffs.size, {
+        min = 10,
+        max = 50,
+        step = 1
+    })
+    targetRightY = targetRightY - 50
+
+    CreateOptionElement(targetRightColumn, "Slider", "Target Debuff Size", "Adjust the size of target debuff icons", function(self, value)
+        MinimalUnitFramesDB.targetDebuffSize = value
+        addon.UpdateAllFrames()
+    end, targetRightY, MinimalUnitFramesDB.targetDebuffSize or addon.Config.auraConfig.target.debuffs.size, {
+        min = 10,
+        max = 50,
+        step = 1
+    })
+    targetRightY = targetRightY - 50
+
+    CreateOptionElement(targetRightColumn, "Slider", "Target Aura Buttons Per Row", "Adjust the number of aura buttons per row", function(self, value)
+        MinimalUnitFramesDB.targetAuraButtonsPerRow = value
+        addon.UpdateAllFrames()
+    end, targetRightY, MinimalUnitFramesDB.targetAuraButtonsPerRow or addon.Config.auraConfig.target.buffs.perRow, {
+        min = 1,
+        max = 20,
+        step = 1
+    })
+    targetRightY = targetRightY - 50
+
+    CreateOptionElement(targetRightColumn, "Slider", "Target Buff Limit", "Set the maximum number of buffs to display", function(self, value)
+        MinimalUnitFramesDB.targetBuffLimit = value
+        addon.UpdateAllFrames()
+    end, targetRightY, MinimalUnitFramesDB.targetBuffLimit or 32, {
+        min = 0,
+        max = 40,
+        step = 1
+    })
+    targetRightY = targetRightY - 50
+
+    CreateOptionElement(targetRightColumn, "Slider", "Target Debuff Limit", "Set the maximum number of debuffs to display", function(self, value)
+        MinimalUnitFramesDB.targetDebuffLimit = value
+        addon.UpdateAllFrames()
+    end, targetRightY, MinimalUnitFramesDB.targetDebuffLimit or 16, {
+        min = 0,
+        max = 40,
+        step = 1
+    })
+    targetRightY = targetRightY - 50
 
     -- *********************
     -- Target of Target Frame Options

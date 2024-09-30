@@ -8,9 +8,10 @@ local media = addon.Util.FetchMedia
 --- Creates an aura button
 ---@param parent any UnitFrame
 ---@param index number
-local function CreateAuraButton(parent, index, isDebuff)
-    local config = isDebuff and addon.Config.auraConfig.debuffs or addon.Config.auraConfig.buffs
-    local size = config.size
+---@param isDebuff boolean
+local function CreateAuraButton(parent, index, isDebuff, unit)
+    local config = isDebuff and addon.Config.auraConfig[unit].debuffs or addon.Config.auraConfig[unit].buffs
+    local size = isDebuff and MinimalUnitFramesDB[unit .. "DebuffSize"] or MinimalUnitFramesDB[unit .. "BuffSize"] or config.size
     local button = CreateFrame("Button", nil, parent)
     button:SetSize(size, size)
 
@@ -29,7 +30,7 @@ local function CreateAuraButton(parent, index, isDebuff)
     button.border:SetVertexColor(isDebuff and 1 or 0, 0, 0, 1)
 
     button.count = button:CreateFontString(nil, "OVERLAY")
-    button.count:SetFont(media("fonts", MinimalUnitFramesDB.font or addon.Config.defaultConfig.font), MinimalUnitFramesDB.fontSize or addon.Config.defaultConfig.fontSize, MinimalUnitFramesDB.fontStyle or addon.Config.defaultConfig.fontStyle)
+    button.count:SetFont(addon.Util.FetchMedia("fonts", MinimalUnitFramesDB.font or addon.Config.defaultConfig.font), MinimalUnitFramesDB.fontSize or addon.Config.defaultConfig.fontSize, MinimalUnitFramesDB.fontStyle or addon.Config.defaultConfig.fontStyle)
     button.count:SetPoint("BOTTOMRIGHT", -1, 1)
 
     button.cooldown = CreateFrame("Cooldown", nil, button, "CooldownFrameTemplate")
@@ -55,8 +56,10 @@ end
 ---@param count number
 ---@param duration number
 ---@param expirationTime number
+---@param debuffType string
+---@param isDebuff boolean
 local function UpdateAuraButton(button, name, icon, count, duration, expirationTime, debuffType, isDebuff)
-    local config = isDebuff and addon.Config.auraConfig.debuffs or addon.Config.auraConfig.buffs
+    local config = isDebuff and addon.Config.auraConfig.target.debuffs or addon.Config.auraConfig.target.buffs
     button.icon:SetTexture(icon)
     button.count:SetText(count > 1 and count or "")
 
@@ -84,7 +87,7 @@ end
 ---@param filter string
 ---@param config table
 ---@param isDebuff boolean
-local function UpdateAuras(frame, unit, filter, config, isDebuff)
+local function UpdateAuras(frame, unit, filter, isDebuff)
     if not C_UnitAuras then
         return false
     end
@@ -92,17 +95,19 @@ local function UpdateAuras(frame, unit, filter, config, isDebuff)
     frame.auras[filter].filter = filter
     local index = 1
     local hasAuras = false
-    local size = MinimalUnitFramesDB[unit .. "AuraButtonSize"] or config.size
+    local config = addon.Config.auraConfig[unit][isDebuff and "debuffs" or "buffs"]
+    local size = MinimalUnitFramesDB[unit .. (isDebuff and "DebuffSize" or "BuffSize")] or config.size
     local perRow = MinimalUnitFramesDB[unit .. "AuraButtonsPerRow"] or config.perRow
+    local limit = MinimalUnitFramesDB[unit .. (isDebuff and "DebuffLimit" or "BuffLimit")] or config.maxDisplay or 40
 
-    for i = 1, 40 do
+    for i = 1, limit do
         local auraData = C_UnitAuras.GetAuraDataByIndex(unit, i, filter)
 
         if not auraData then
             break
         end
 
-        local button = frame.auras[filter][index] or CreateAuraButton(frame.auras[filter], index, isDebuff)
+        local button = frame.auras[filter][index] or CreateAuraButton(frame.auras[filter], index, isDebuff, unit)
         frame.auras[filter][index] = button
         button:SetID(i)
         UpdateAuraButton(button, auraData.name, auraData.icon, auraData.applications, auraData.duration, auraData.expirationTime, auraData.dispelName, isDebuff)
@@ -126,10 +131,10 @@ end
 --- Creates the aura frames
 ---@param frame any UnitFrame
 function Auras:Create(frame)
-    local buffWidth = addon.Config.auraConfig.buffs.size * addon.Config.auraConfig.buffs.perRow + (addon.Config.auraConfig.buffs.perRow - 1) * 2
-    local buffHeight = addon.Config.auraConfig.buffs.size * addon.Config.auraConfig.buffs.maxRows + (addon.Config.auraConfig.buffs.maxRows - 1) * 2
-    local debuffWidth = addon.Config.auraConfig.debuffs.size * addon.Config.auraConfig.debuffs.perRow + (addon.Config.auraConfig.debuffs.perRow - 1) * 2
-    local debuffHeight = addon.Config.auraConfig.debuffs.size * addon.Config.auraConfig.debuffs.maxRows + (addon.Config.auraConfig.debuffs.maxRows - 1) * 2
+    local buffWidth = 24 * 8 + (8 - 1) * 2
+    local buffHeight = 24 * 8 + (8 - 1) * 2
+    local debuffWidth = 32 * 8 + (8 - 1) * 2
+    local debuffHeight = 32 * 8 + (2 - 1) * 2
 
     frame.auras = {
         HELPFUL = CreateFrame("Frame", nil, frame),
@@ -153,17 +158,17 @@ function Auras:Update(frame, unit)
 
     local hasBuffs, buffCount = false, 0
     if (unit == "player" and MinimalUnitFramesDB.showPlayerBuffs) or (unit == "target" and MinimalUnitFramesDB.showTargetBuffs) then
-        hasBuffs, buffCount = UpdateAuras(frame, unit, "HELPFUL", addon.Config.auraConfig.buffs, false)
+        hasBuffs, buffCount = UpdateAuras(frame, unit, "HELPFUL", false)
     end
 
     local hasDebuffs, debuffCount = false, 0
     if (unit == "player" and MinimalUnitFramesDB.showPlayerDebuffs) or (unit == "target" and MinimalUnitFramesDB.showTargetDebuffs) then
-        hasDebuffs, debuffCount = UpdateAuras(frame, unit, "HARMFUL", addon.Config.auraConfig.debuffs, true)
+        hasDebuffs, debuffCount = UpdateAuras(frame, unit, "HARMFUL", true)
     end
 
-    local buffSize = MinimalUnitFramesDB[unit .. "AuraButtonSize"] or addon.Config.auraConfig.buffs.size
+    local buffSize = MinimalUnitFramesDB[unit .. "AuraButtonSize"] or 22
     local buffSpacing = 2
-    local perRow = MinimalUnitFramesDB[unit .. "AuraButtonsPerRow"] or addon.Config.auraConfig.buffs.perRow
+    local perRow = MinimalUnitFramesDB[unit .. "AuraButtonsPerRow"] or 8
     local buffRows = math.ceil(buffCount / perRow)
 
     if hasBuffs then
