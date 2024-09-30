@@ -415,7 +415,7 @@ end
 
 --- Updates the bar texture
 function addon.UpdateBarTexture()
-    local textureName = MinimalUnitFramesDB.barTexture r addon.Config.defaultConfig.barTexture
+    local textureName = MinimalUnitFramesDB.barTexture or addon.Config.defaultConfig.barTexture
     local texture = addon.Util.FetchMedia("textures", textureName)
     if not texture then
         texture = addon.Util.FetchMedia("textures", addon.Config.defaultConfig.barTexture)
