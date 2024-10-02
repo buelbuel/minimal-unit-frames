@@ -3,8 +3,6 @@ local addonName, addon = ...
 local Auras = {}
 addon.Auras = Auras
 
-local media = addon.Util.FetchMedia
-
 --- Creates an aura button
 ---@param parent any UnitFrame
 ---@param index number
@@ -30,8 +28,9 @@ local function CreateAuraButton(parent, index, isDebuff, unit)
     button.border:SetVertexColor(isDebuff and 1 or 0, 0, 0, 1)
 
     button.count = button:CreateFontString(nil, "OVERLAY")
-    button.count:SetFont(addon.Util.FetchMedia("fonts", MinimalUnitFramesDB.font or addon.Config.defaultConfig.font), MinimalUnitFramesDB.fontSize or addon.Config.defaultConfig.fontSize, MinimalUnitFramesDB.fontStyle or addon.Config.defaultConfig.fontStyle)
-    button.count:SetPoint("BOTTOMRIGHT", -1, 1)
+    button.count:SetFont(addon.Util.FetchMedia("fonts", MinimalUnitFramesDB.font or addon.Config.defaultConfig.font), tonumber(config.stackTextSize) or MinimalUnitFramesDB.fontSize or addon.Config.defaultConfig.fontSize, MinimalUnitFramesDB.fontStyle or addon.Config.defaultConfig.fontStyle)
+    button.count:ClearAllPoints()
+    button.count:SetPoint(config.stackTextAnchor or "BOTTOMRIGHT", button, config.stackTextAnchor or "BOTTOMRIGHT", config.stackTextXOffset or -1, config.stackTextYOffset or 1)
 
     button.cooldown = CreateFrame("Cooldown", nil, button, "CooldownFrameTemplate")
     button.cooldown:SetAllPoints()
@@ -39,6 +38,10 @@ local function CreateAuraButton(parent, index, isDebuff, unit)
     button.cooldown:SetDrawSwipe(true)
     button.cooldown:SetSwipeColor(0, 0, 0, 0.8)
     button.cooldown:SetHideCountdownNumbers(not config.showCooldownText)
+
+    button.count:SetFont(addon.Util.FetchMedia("fonts", MinimalUnitFramesDB.font or addon.Config.defaultConfig.font), config.stackTextSize, MinimalUnitFramesDB.fontStyle or addon.Config.defaultConfig.fontStyle)
+    button.count:ClearAllPoints()
+    button.count:SetPoint(config.stackTextAnchor, button, config.stackTextAnchor, config.stackTextXOffset, config.stackTextYOffset)
 
     button:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_BOTTOMRIGHT")
@@ -58,10 +61,25 @@ end
 ---@param expirationTime number
 ---@param debuffType string
 ---@param isDebuff boolean
-local function UpdateAuraButton(button, name, icon, count, duration, expirationTime, debuffType, isDebuff)
-    local config = isDebuff and addon.Config.auraConfig.target.debuffs or addon.Config.auraConfig.target.buffs
+local function UpdateAuraButton(button, name, icon, count, duration, expirationTime, debuffType, isDebuff, unit)
+    local config = isDebuff and addon.Config.auraConfig[unit].debuffs or addon.Config.auraConfig[unit].buffs
     button.icon:SetTexture(icon)
-    button.count:SetText(count > 1 and count or "")
+
+    if count > 1 and MinimalUnitFramesDB[unit .. "ShowAuraStackText"] then
+        button.count:SetText(count)
+        button.count:Show()
+    else
+        button.count:Hide()
+    end
+
+    local fontPath = addon.Util.FetchMedia("fonts", MinimalUnitFramesDB.font or addon.Config.defaultConfig.font)
+    local fontSize = MinimalUnitFramesDB[unit .. "AuraStackTextSize"] or config.stackTextSize
+    local fontStyle = MinimalUnitFramesDB.fontStyle or addon.Config.defaultConfig.fontStyle
+    button.count:SetFont(fontPath, fontSize, fontStyle)
+
+    button.count:ClearAllPoints()
+    local anchor = MinimalUnitFramesDB[unit .. "AuraStackTextAnchor"] or config.stackTextAnchor
+    button.count:SetPoint(anchor, button, anchor, config.stackTextXOffset, config.stackTextYOffset)
 
     if duration and duration > 0 then
         button.cooldown:SetCooldown(expirationTime - duration, duration)
@@ -95,36 +113,42 @@ local function UpdateAuras(frame, unit, filter, isDebuff)
     frame.auras[filter].filter = filter
     local index = 1
     local hasAuras = false
-    local config = addon.Config.auraConfig[unit][isDebuff and "debuffs" or "buffs"]
-    local size = MinimalUnitFramesDB[unit .. (isDebuff and "DebuffSize" or "BuffSize")] or config.size
-    local perRow = MinimalUnitFramesDB[unit .. "AuraButtonsPerRow"] or config.perRow
-    local limit = MinimalUnitFramesDB[unit .. (isDebuff and "DebuffLimit" or "BuffLimit")] or config.maxDisplay or 40
+    local config = addon.Config.auraConfig[unit] or addon.Config.auraConfig.player
+    local size = MinimalUnitFramesDB[unit .. (isDebuff and "DebuffSize" or "BuffSize")] or (isDebuff and config.debuffs.size or config.buffs.size)
+    local perRow = MinimalUnitFramesDB[unit .. (isDebuff and "DebuffsPerRow" or "BuffsPerRow")] or (isDebuff and config.debuffs.perRow or config.buffs.perRow)
+    local limit = MinimalUnitFramesDB[unit .. (isDebuff and "DebuffLimit" or "BuffLimit")] or (isDebuff and config.debuffs.maxDisplay or config.buffs.maxDisplay) or 40
+    local whitelist = MinimalUnitFramesDB[unit .. "AuraWhitelist"] or {}
+    local blacklist = MinimalUnitFramesDB[unit .. "AuraBlacklist"] or {}
 
-    for i = 1, limit do
+    local auraCount = 0
+    for i = 1, 40 do
         local auraData = C_UnitAuras.GetAuraDataByIndex(unit, i, filter)
-
         if not auraData then
             break
         end
+        if (auraCount < limit) and (not next(whitelist) or whitelist[auraData.name] or whitelist[tostring(auraData.spellId)]) and (not blacklist[auraData.name] and not blacklist[tostring(auraData.spellId)]) then
+            local button = frame.auras[filter][index] or CreateAuraButton(frame.auras[filter], index, isDebuff, unit)
+            frame.auras[filter][index] = button
+            button:SetID(i)
+            UpdateAuraButton(button, auraData.name, auraData.icon, auraData.applications, auraData.duration, auraData.expirationTime, auraData.dispelName, isDebuff, unit)
 
-        local button = frame.auras[filter][index] or CreateAuraButton(frame.auras[filter], index, isDebuff, unit)
-        frame.auras[filter][index] = button
-        button:SetID(i)
-        UpdateAuraButton(button, auraData.name, auraData.icon, auraData.applications, auraData.duration, auraData.expirationTime, auraData.dispelName, isDebuff)
+            button:SetSize(size, size)
+            local row = math.floor((index - 1) / perRow)
+            local col = (index - 1) % perRow
+            button:ClearAllPoints()
+            button:SetPoint("TOPLEFT", frame.auras[filter], "TOPLEFT", col * (size + 2), -row * (size + 2))
 
-        button:SetSize(size, size)
-        button:SetPoint("TOPLEFT", frame.auras[filter], "TOPLEFT", ((index - 1) % perRow) * (size + 2), -math.floor((index - 1) / perRow) * (size + 2))
-
-        button:Show()
-        hasAuras = true
-        index = index + 1
+            button:Show()
+            hasAuras = true
+            index = index + 1
+            auraCount = auraCount + 1
+        end
     end
 
     for i = index, #frame.auras[filter] do
         frame.auras[filter][i]:Hide()
     end
 
-    local auraCount = index - 1
     return hasAuras, auraCount
 end
 
@@ -166,18 +190,41 @@ function Auras:Update(frame, unit)
         hasDebuffs, debuffCount = UpdateAuras(frame, unit, "HARMFUL", true)
     end
 
-    local buffSize = MinimalUnitFramesDB[unit .. "AuraButtonSize"] or 22
-    local buffSpacing = 2
-    local perRow = MinimalUnitFramesDB[unit .. "AuraButtonsPerRow"] or 8
-    local buffRows = math.ceil(buffCount / perRow)
+    local config = addon.Config.auraConfig[unit] or addon.Config.auraConfig.player
+    local buffSize = MinimalUnitFramesDB[unit .. "BuffSize"] or config.buffs.size
+    local debuffSize = MinimalUnitFramesDB[unit .. "DebuffSize"] or config.debuffs.size
+    local buffPerRow = MinimalUnitFramesDB[unit .. "BuffsPerRow"] or config.buffs.perRow
+    local debuffPerRow = MinimalUnitFramesDB[unit .. "DebuffsPerRow"] or config.debuffs.perRow
+    local verticalSpacing = MinimalUnitFramesDB[unit .. "AuraVerticalSpacing"] or config.verticalSpacing or 2
 
+    local buffRows = math.ceil(buffCount / buffPerRow)
+    local debuffRows = math.ceil(debuffCount / debuffPerRow)
+
+    local xOffset = MinimalUnitFramesDB[unit .. "AuraXOffset"] or config.xOffset or 0
+    local yOffset = MinimalUnitFramesDB[unit .. "AuraYOffset"] or config.yOffset or 0
+    local anchor = MinimalUnitFramesDB[unit .. "AuraAnchor"] or config.anchorPoint or "BOTTOMLEFT"
+
+    frame.auras.HELPFUL:ClearAllPoints()
+    frame.auras.HELPFUL:SetPoint(anchor, frame, anchor, xOffset, yOffset)
+    frame.auras.HELPFUL:SetSize(buffPerRow * buffSize, buffRows * buffSize)
+
+    frame.auras.HARMFUL:ClearAllPoints()
     if hasBuffs then
-        frame.auras.HARMFUL:SetPoint("TOPLEFT", frame.auras.HELPFUL, "BOTTOMLEFT", 0, -buffSpacing)
+        frame.auras.HARMFUL:SetPoint(anchor, frame.auras.HELPFUL, "BOTTOMLEFT", 0, -verticalSpacing)
     else
-        frame.auras.HARMFUL:SetPoint("TOPLEFT", frame, "BOTTOMLEFT", 0, -2)
+        frame.auras.HARMFUL:SetPoint(anchor, frame, anchor, xOffset, yOffset)
     end
+    frame.auras.HARMFUL:SetSize(debuffPerRow * debuffSize, debuffRows * debuffSize)
 
-    frame.auras.HELPFUL:SetHeight(buffRows * (buffSize + buffSpacing))
     frame.auras.HELPFUL:SetShown(hasBuffs)
     frame.auras.HARMFUL:SetShown(hasDebuffs)
+end
+
+function addon.Auras:UpdateAllAuras()
+    for _, unit in ipairs({"player", "target", "pet"}) do
+        local frame = addon[unit .. "Frame"]
+        if frame and frame.auras then
+            self:Update(frame, unit)
+        end
+    end
 end

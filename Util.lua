@@ -3,11 +3,10 @@ local addonName, addon = ...
 local Util = {}
 addon.Util = Util
 
-local CONFIG = addon.Config
-
 --- Fetches a media file
 ---@param type string
 ---@param key string
+---@return string
 function Util.FetchMedia(mediaType, name)
     if mediaType and name and addon.Config.media[mediaType] and addon.Config.media[mediaType][name] then
         return addon.Config.media[mediaType][name]
@@ -29,6 +28,7 @@ end
 
 --- Formats a value
 ---@param value number
+---@return string
 function Util.ValueFormat(value)
     if value >= 1000000 then
         return string.format("%.1fM", value / 1000000)
@@ -44,6 +44,7 @@ end
 ---@param max number
 ---@param unit string
 ---@param isClassResource boolean
+---@return string
 function Util.FormatBarText(current, max, unit, isClassResource)
     local statusTextDisplay = GetCVar("statusTextDisplay")
 
@@ -68,6 +69,7 @@ end
 
 --- Formats a time
 ---@param time number
+---@return string
 function Util.TimeFormat(time)
     if time >= 3600 then
         return format("%d:%02d:%02d", time / 3600, (time % 3600) / 60, time % 60)
@@ -82,6 +84,7 @@ end
 
 --- Returns the keys of a table
 ---@param table table
+---@return table
 function addon.Util.GetTableKeys(table)
     local keys = {}
     for k in pairs(table) do
@@ -93,6 +96,7 @@ end
 --- Gets the bar color based on class and power type
 ---@param unit string
 ---@param isHealth boolean
+---@return table
 function addon.Util.GetBarColor(unit, isHealth)
     if unit == "targetoftarget" then
         unit = "targettarget"
@@ -139,6 +143,7 @@ end
 
 --- Loads a module
 ---@param moduleName string
+---@return boolean
 function addon.Util.LoadModule(moduleName)
     if addon[moduleName] then
         return true
@@ -165,4 +170,19 @@ function addon.Util.LoadModule(moduleName)
         return false
     end
     return true
+end
+
+--- Splits a string
+---@param inputstr string
+---@param sep string
+---@return table
+function addon.Util.SplitString(inputstr, sep)
+    if sep == nil then
+        sep = "%s"
+    end
+    local t = {}
+    for str in string.gmatch(inputstr, "([^" .. sep .. "]+)") do
+        table.insert(t, str:trim())
+    end
+    return t
 end

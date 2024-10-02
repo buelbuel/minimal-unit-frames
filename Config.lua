@@ -222,6 +222,7 @@ Config.frameBackdrop = {
 ---@type table
 Config.auraConfig = {
     player = {
+        verticalSpacing = 2,
         buffs = {
             enabled = Config.defaultConfig.showPlayerBuffs,
             maxRows = 2,
@@ -231,7 +232,12 @@ Config.auraConfig = {
             anchorPoint = Config.media.anchorPoints.TOPLEFT,
             xOffset = -2,
             yOffset = 2,
-            maxDisplay = 16
+            maxDisplay = 16,
+            showStackText = true,
+            stackTextSize = 10,
+            stackTextAnchor = "BOTTOMRIGHT",
+            stackTextXOffset = -1,
+            stackTextYOffset = 1
         },
         debuffs = {
             enabled = Config.defaultConfig.showPlayerDebuffs,
@@ -242,10 +248,16 @@ Config.auraConfig = {
             anchorPoint = Config.media.anchorPoints.TOPRIGHT,
             xOffset = -2,
             yOffset = -2,
-            maxDisplay = 32
+            maxDisplay = 32,
+            showStackText = true,
+            stackTextSize = 10,
+            stackTextAnchor = "BOTTOMRIGHT",
+            stackTextXOffset = -1,
+            stackTextYOffset = 1
         }
     },
     target = {
+        verticalSpacing = 2,
         buffs = {
             enabled = Config.defaultConfig.showTargetBuffs,
             maxRows = 2,
@@ -255,7 +267,12 @@ Config.auraConfig = {
             anchorPoint = Config.media.anchorPoints.TOPLEFT,
             xOffset = 2,
             yOffset = 2,
-            maxDisplay = 32
+            maxDisplay = 32,
+            showStackText = true,
+            stackTextSize = 10,
+            stackTextAnchor = "BOTTOMRIGHT",
+            stackTextXOffset = -1,
+            stackTextYOffset = 1
         },
         debuffs = {
             enabled = Config.defaultConfig.showTargetDebuffs,
@@ -266,7 +283,12 @@ Config.auraConfig = {
             anchorPoint = Config.media.anchorPoints.TOPRIGHT,
             xOffset = 2,
             yOffset = -2,
-            maxDisplay = 16
+            maxDisplay = 16,
+            showStackText = true,
+            stackTextSize = 10,
+            stackTextAnchor = "BOTTOMRIGHT",
+            stackTextXOffset = -1,
+            stackTextYOffset = 1
         }
     }
 }
@@ -279,6 +301,13 @@ Config.classResourcesConfig = {
 ---@type table
 Config.combatFeedbackConfig = {
     playerEnabled = Config.defaultConfig.showPlayerCombatFeedback,
+    fontSize = 20,
+    fontOutline = "NONE",
+    duration = 2.0,
+    fadeOutDuration = 0.5,
+    xOffset = 0,
+    yOffset = 0,
+    anchorPoint = "CENTER",
     colors = {
         STANDARD = {
             r = 1,

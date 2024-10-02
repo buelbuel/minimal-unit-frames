@@ -5,6 +5,21 @@ optionsPanel = CreateFrame("Frame", "MinimalUnitFramesOptionsPanel", UIParent)
 optionsPanel.name = "Minimal Unit Frames"
 optionsPanel:Hide()
 
+--- Creates a scrollable frame
+---@param parent any Frame
+---@return any Frame, any Frame
+local function CreateScrollableFrame(parent)
+    local scrollFrame = CreateFrame("ScrollFrame", nil, parent, "UIPanelScrollFrameTemplate")
+    scrollFrame:SetPoint("TOPLEFT", parent, "TOPLEFT", 0, 0)
+    scrollFrame:SetPoint("BOTTOMRIGHT", parent, "BOTTOMRIGHT", -20, 40)
+
+    local content = CreateFrame("Frame", nil, scrollFrame)
+    content:SetSize(scrollFrame:GetWidth(), 1)
+    scrollFrame:SetScrollChild(content)
+
+    return scrollFrame, content
+end
+
 --- Creates a checkbox
 ---@param parent any Frame
 ---@param label string
@@ -14,12 +29,9 @@ optionsPanel:Hide()
 local function CreateCheckbox(parent, label, description, onClick)
     local check = CreateFrame("CheckButton", nil, parent, "InterfaceOptionsCheckButtonTemplate")
     check.Text:SetText(label)
-    check.tooltipText = label
-    check.tooltipRequirement = description
     check:SetScript("OnClick", onClick)
     return check
 end
-
 --- Creates a slider
 ---@param parent any Frame
 ---@param label string
@@ -105,17 +117,49 @@ local function CreateDropdown(parent, label, items, default, onChange)
     return dropdown
 end
 
---- Creates a group of options
+--- Creates an input element
 ---@param parent any Frame
----@param title string
+---@param label string
+---@param tooltip string
+---@param callback function
 ---@param yOffset number
----@return any Frame
-local function CreateOptionGroup(parent, title, yOffset)
-    local group = CreateFrame("Frame", nil, parent)
-    group:SetSize(parent:GetWidth(), 30)
-    group:SetPoint("TOPLEFT", parent, "TOPLEFT", 0, yOffset)
+---@param defaultValue string
+local function CreateInputElement(parent, label, tooltip, onTextChanged, initialValue)
+    local frame = CreateFrame("Frame", nil, parent)
+    frame:SetSize(250, 40)
 
-    return group
+    local labelText = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    labelText:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, 0)
+    labelText:SetText(label)
+
+    local editBox = CreateFrame("EditBox", nil, frame, "InputBoxTemplate")
+    editBox:SetSize(200, 20)
+    editBox:SetPoint("TOPLEFT", labelText, "BOTTOMLEFT", 5, -5)
+    editBox:SetAutoFocus(false)
+    editBox:SetText(initialValue or "")
+
+    editBox:SetScript("OnEnterPressed", function(self)
+        onTextChanged(self:GetText())
+        self:ClearFocus()
+    end)
+
+    editBox:SetScript("OnEscapePressed", function(self)
+        self:SetText(initialValue or "")
+        self:ClearFocus()
+    end)
+
+    frame:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText(label, 1, 1, 1)
+        GameTooltip:AddLine(tooltip, nil, nil, nil, true)
+        GameTooltip:Show()
+    end)
+
+    frame:SetScript("OnLeave", function(self)
+        GameTooltip:Hide()
+    end)
+
+    return frame
 end
 
 --- Creates an option element
@@ -126,8 +170,10 @@ end
 ---@param onClick function
 ---@param yOffset number
 ---@param initialValue any
-local function CreateOptionElement(parent, elementType, label, tooltip, onClick, yOffset, initialValue, options)
+---@param options table
+local function CreateOptionElement(parent, elementType, label, tooltip, onClick, initialValue, options)
     local element
+
     if elementType == "Checkbox" then
         element = CreateCheckbox(parent, label, tooltip, onClick)
         element:SetChecked(initialValue)
@@ -142,104 +188,26 @@ local function CreateOptionElement(parent, elementType, label, tooltip, onClick,
         element:SetWidth(150)
         element:SetHeight(25)
         element:SetScript("OnClick", onClick)
+    elseif elementType == "Input" then
+        element = CreateInputElement(parent, label, tooltip, onClick, initialValue)
     end
 
     if element then
-        element:SetPoint("TOPLEFT", parent, "TOPLEFT", 16, yOffset)
+        element:SetPoint("TOPLEFT", parent, "TOPLEFT", 16, parent.lastElementOffset or 0)
+        element:SetScript("OnEnter", function(self)
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            GameTooltip:SetText(label, 1, 1, 1)
+            GameTooltip:AddLine(tooltip, nil, nil, nil, true)
+            GameTooltip:Show()
+        end)
+        element:SetScript("OnLeave", function(self)
+            GameTooltip:Hide()
+        end)
+        local offset = elementType == "Checkbox" and 30 or 50
+        parent.lastElementOffset = (parent.lastElementOffset or 0) - offset
     end
+
     return element
-end
-
---- Creates a group of options for a specific frame
----@param content any Frame
----@param frameName string
----@param yOffset number
----@return any Frame
-local function CreateFrameOptions(content, frameName, yOffset)
-    local leftColumn = CreateFrame("Frame", nil, content)
-    leftColumn:SetSize(content:GetWidth() / 2 - 10, content:GetHeight())
-    leftColumn:SetPoint("TOPLEFT", content, "TOPLEFT", 0, yOffset)
-
-    local rightColumn = CreateFrame("Frame", nil, content)
-    rightColumn:SetSize(content:GetWidth() / 2 - 10, content:GetHeight())
-    rightColumn:SetPoint("TOPRIGHT", content, "TOPRIGHT", 0, yOffset)
-
-    local leftY = 0
-    local rightY = 0
-
-    -- Left Column
-    CreateOptionElement(leftColumn, "Checkbox", "Show " .. frameName .. " Frame", "Display " .. frameName .. " frame", function(self)
-        MinimalUnitFramesDB["show" .. frameName .. "Frame"] = self:GetChecked()
-        addon.UpdateFramesVisibility()
-    end, leftY, MinimalUnitFramesDB["show" .. frameName .. "Frame"])
-    leftY = leftY - 30
-
-    CreateOptionElement(leftColumn, "Checkbox", "Show " .. frameName .. " Text", "Display text on " .. frameName .. " frame", function(self)
-        MinimalUnitFramesDB["show" .. frameName .. "Text"] = self:GetChecked()
-        addon.UpdateFrameTextVisibility(string.lower(frameName))
-    end, leftY, MinimalUnitFramesDB["show" .. frameName .. "Text"])
-    leftY = leftY - 30
-
-    CreateOptionElement(leftColumn, "Checkbox", "Show " .. frameName .. " Level Text", "Display level text on " .. frameName .. " frame", function(self)
-        MinimalUnitFramesDB["show" .. frameName .. "LevelText"] = self:GetChecked()
-        addon.UpdateLevelTextVisibility(string.lower(frameName))
-    end, leftY, MinimalUnitFramesDB["show" .. frameName .. "LevelText"])
-    leftY = leftY - 50
-
-    CreateOptionElement(leftColumn, "Dropdown", "Frame Strata", "Set the strata of the " .. frameName .. " frame", function(value)
-        MinimalUnitFramesDB[string.lower(frameName) .. "Strata"] = value
-        addon.UpdateFrameStrata(addon[string.lower(frameName) .. "Frame"], string.lower(frameName))
-    end, leftY, MinimalUnitFramesDB[string.lower(frameName) .. "Strata"], {
-        items = addon.Util.GetMediaList("stratas")
-    })
-    leftY = leftY - 50
-
-    CreateOptionElement(leftColumn, "Dropdown", "Anchor Point", "Set the anchor point of the " .. frameName .. " frame", function(value)
-        MinimalUnitFramesDB[string.lower(frameName) .. "Anchor"] = value
-        addon.UpdateFramePosition(addon[string.lower(frameName) .. "Frame"], string.lower(frameName))
-    end, leftY, MinimalUnitFramesDB[string.lower(frameName) .. "Anchor"], {
-        items = addon.Util.GetMediaList("anchorPoints")
-    })
-
-    -- Right Column
-    CreateOptionElement(rightColumn, "Slider", "Width", "Adjust the width of the " .. frameName .. " frame", function(self, value)
-        MinimalUnitFramesDB[string.lower(frameName) .. "Width"] = value
-        addon.UpdateFrameSize(addon[string.lower(frameName) .. "Frame"], string.lower(frameName))
-    end, rightY, MinimalUnitFramesDB[string.lower(frameName) .. "Width"], {
-        min = 50,
-        max = 400,
-        step = 1
-    })
-    rightY = rightY - 50
-
-    CreateOptionElement(rightColumn, "Slider", "Height", "Adjust the height of the " .. frameName .. " frame", function(self, value)
-        MinimalUnitFramesDB[string.lower(frameName) .. "Height"] = value
-        addon.UpdateFrameSize(addon[string.lower(frameName) .. "Frame"], string.lower(frameName))
-    end, rightY, MinimalUnitFramesDB[string.lower(frameName) .. "Height"], {
-        min = 20,
-        max = 200,
-        step = 1
-    })
-    rightY = rightY - 50
-
-    CreateOptionElement(rightColumn, "Slider", "X Position", "Adjust the horizontal position of the " .. frameName .. " frame", function(self, value)
-        MinimalUnitFramesDB[string.lower(frameName) .. "XPos"] = value
-        addon.UpdateFramePosition(addon[string.lower(frameName) .. "Frame"], string.lower(frameName))
-    end, rightY, MinimalUnitFramesDB[string.lower(frameName) .. "XPos"], {
-        min = -800,
-        max = 800,
-        step = 1
-    })
-    rightY = rightY - 50
-
-    CreateOptionElement(rightColumn, "Slider", "Y Position", "Adjust the vertical position of the " .. frameName .. " frame", function(self, value)
-        MinimalUnitFramesDB[string.lower(frameName) .. "YPos"] = value
-        addon.UpdateFramePosition(addon[string.lower(frameName) .. "Frame"], string.lower(frameName))
-    end, rightY, MinimalUnitFramesDB[string.lower(frameName) .. "YPos"], {
-        min = -600,
-        max = 600,
-        step = 1
-    })
 end
 
 --- Creates the options panel
@@ -262,37 +230,30 @@ local function CreateOptions(frame)
     content.tabs = {}
     content.tabContents = {}
 
-    local function CreateTab(parent, text, id)
-        local tab = CreateFrame("Button", nil, parent, "PanelTabButtonTemplate")
-        tab:SetID(id)
-        tab:SetText(text)
+    -- Create tabs
+    for i, tabName in ipairs(tabNames) do
+        local tab = CreateFrame("Button", nil, content, "PanelTabButtonTemplate")
+        tab:SetID(i)
+        tab:SetText(tabName)
         tab:SetScript("OnClick", function(self)
-            PanelTemplates_SetTab(parent, self:GetID())
-            for j, tabContent in ipairs(parent.tabContents) do
-                if j == self:GetID() then
-                    tabContent:Show()
-                else
-                    tabContent:Hide()
-                end
+            PanelTemplates_SetTab(content, self:GetID())
+            for _, tabContent in ipairs(content.tabContents) do
+                tabContent:Hide()
             end
+            content.tabContents[self:GetID()]:Show()
         end)
-        return tab
-    end
-
-    for i, name in ipairs(tabNames) do
-        local tab = CreateTab(content, name, i)
-        if i == 1 then
-            tab:SetPoint("BOTTOMLEFT", content, "BOTTOMLEFT", 5, 5)
-        else
-            tab:SetPoint("BOTTOMLEFT", content.tabs[i - 1], "BOTTOMRIGHT", -15, 0)
-        end
-        table.insert(content.tabs, tab)
+        tab:SetPoint("TOPLEFT", content, "BOTTOMLEFT", (i - 1) * 80, 0)
+        content.tabs[i] = tab
 
         local tabContent = CreateFrame("Frame", nil, content)
-        tabContent:SetSize(content:GetWidth() - 20, content:GetHeight() - 40)
-        tabContent:SetPoint("TOPLEFT", content, "TOPLEFT", 10, -10)
+        tabContent:SetSize(content:GetWidth(), content:GetHeight() - 30)
+        tabContent:SetPoint("TOPLEFT", content, "TOPLEFT", 0, -30)
         tabContent:Hide()
-        table.insert(content.tabContents, tabContent)
+        content.tabContents[i] = tabContent
+
+        local scrollFrame, scrollContent = CreateScrollableFrame(tabContent)
+        content.tabContents[i].scrollFrame = scrollFrame
+        content.tabContents[i].scrollContent = scrollContent
     end
 
     content.numTabs = #tabNames
@@ -304,7 +265,7 @@ local function CreateOptions(frame)
     -- *********************
     -- General Options
     -- *********************
-    local generalOptions = content.tabContents[1]
+    local generalOptions = content.tabContents[1].scrollContent
     local leftColumn = CreateFrame("Frame", nil, generalOptions)
     leftColumn:SetSize(generalOptions:GetWidth() / 2 - 10, generalOptions:GetHeight())
     leftColumn:SetPoint("TOPLEFT", generalOptions, "TOPLEFT", 0, 0)
@@ -313,15 +274,11 @@ local function CreateOptions(frame)
     rightColumn:SetSize(generalOptions:GetWidth() / 2 - 10, generalOptions:GetHeight())
     rightColumn:SetPoint("TOPRIGHT", generalOptions, "TOPRIGHT", 0, 0)
 
-    local leftYOffset = -10
-    local rightYOffset = -10
-
     -- General Options (Left Column)
     CreateOptionElement(leftColumn, "Checkbox", "Show Border", "Display border around unit frames", function(self)
         MinimalUnitFramesDB.showBorder = self:GetChecked()
         addon.UpdateBorderVisibility()
-    end, leftYOffset, MinimalUnitFramesDB.showBorder)
-    leftYOffset = leftYOffset - 30
+    end, MinimalUnitFramesDB.showBorder)
 
     CreateOptionElement(leftColumn, "Checkbox", "Enable Class Resources", "Display class-specific resource bars", function(self)
         MinimalUnitFramesDB.enableClassResources = self:GetChecked()
@@ -331,99 +288,96 @@ local function CreateOptions(frame)
         if addon.ClassResources then
             addon.ClassResources:UpdateClassResources()
         end
-    end, leftYOffset, MinimalUnitFramesDB.enableClassResources)
-    leftYOffset = leftYOffset - 30
+    end, MinimalUnitFramesDB.enableClassResources)
 
     CreateOptionElement(leftColumn, "Checkbox", "Show Frame Backdrop", "Display backdrop behind unit frames", function(self)
         MinimalUnitFramesDB.showFrameBackdrop = self:GetChecked()
         addon.UpdateFrameBackdropVisibility()
-    end, leftYOffset, MinimalUnitFramesDB.showFrameBackdrop)
+    end, MinimalUnitFramesDB.showFrameBackdrop)
 
     -- General Options (Right Column)
     CreateOptionElement(rightColumn, "Dropdown", "Bar Texture", "Select the texture for health and power bars", function(value)
         MinimalUnitFramesDB.barTexture = value
         addon.UpdateBarTexture()
-    end, rightYOffset, MinimalUnitFramesDB.barTexture, {
+    end, MinimalUnitFramesDB.barTexture, {
         items = addon.Util.GetMediaList("textures")
     })
-    rightYOffset = rightYOffset - 50
 
     CreateOptionElement(rightColumn, "Dropdown", "Font", "Select the font for unit frames", function(value)
         MinimalUnitFramesDB.font = value
         addon.UpdateFont()
         addon.UpdateAllFrames()
-    end, rightYOffset, MinimalUnitFramesDB.font, {
+        if addon.CombatText then
+            addon.CombatText:UpdateCombatFeedbackFontSize()
+        end
+    end, MinimalUnitFramesDB.font, {
         items = addon.Util.GetMediaList("fonts")
     })
-    rightYOffset = rightYOffset - 50
 
     CreateOptionElement(rightColumn, "Dropdown", "Font Style", "Select the font style for unit frames", function(value)
         MinimalUnitFramesDB.fontStyle = value
         addon.UpdateFont()
-    end, rightYOffset, MinimalUnitFramesDB.fontStyle or "NONE", {
+        addon.UpdateAllFrames()
+        if addon.CombatText then
+            addon.CombatText:UpdateCombatFeedbackFontSize()
+        end
+    end, MinimalUnitFramesDB.fontStyle, {
         items = addon.Util.GetMediaList("fontStyles")
     })
-    rightYOffset = rightYOffset - 50
 
     CreateOptionElement(rightColumn, "Slider", "Font Size", "Adjust the font size for unit frames", function(self, value)
         MinimalUnitFramesDB.fontSize = value
         addon.UpdateFont()
-    end, rightYOffset, MinimalUnitFramesDB.fontSize or addon.Config.defaultConfig.fontSize, {
+        if addon.CombatText then
+            addon.CombatText:UpdateCombatFeedbackFontSize()
+        end
+    end, MinimalUnitFramesDB.fontSize or addon.Config.defaultConfig.fontSize, {
         min = 8,
         max = 24,
         step = 1
     })
-    rightYOffset = rightYOffset - 50
 
     CreateOptionElement(rightColumn, "Button", "Reset Options", "Reset all options to default values", function()
         StaticPopup_Show("MINIMAL_UNIT_FRAMES_RESET_CONFIRM")
-    end, rightYOffset)
+    end)
 
     -- *********************
     -- Player Frame Options
     -- *********************
-    local playerOptions = content.tabContents[2]
+    local playerOptions = content.tabContents[2].scrollContent
     local playerLeftColumn = CreateFrame("Frame", nil, playerOptions)
     playerLeftColumn:SetSize(playerOptions:GetWidth() / 2 - 10, playerOptions:GetHeight())
-    playerLeftColumn:SetPoint("TOPLEFT", playerOptions, "TOPLEFT", 0, -10)
+    playerLeftColumn:SetPoint("TOPLEFT", playerOptions, "TOPLEFT", 0, 0)
 
     local playerRightColumn = CreateFrame("Frame", nil, playerOptions)
     playerRightColumn:SetSize(playerOptions:GetWidth() / 2 - 10, playerOptions:GetHeight())
-    playerRightColumn:SetPoint("TOPRIGHT", playerOptions, "TOPRIGHT", 0, -10)
-
-    local playerLeftY = 0
-    local playerRightY = 0
+    playerRightColumn:SetPoint("TOPRIGHT", playerOptions, "TOPRIGHT", 0, 0)
 
     -- Player Frame Options (Left Column)
     CreateOptionElement(playerLeftColumn, "Checkbox", "Use Player Class Colors", "Use class colors for player health bar", function(self)
         MinimalUnitFramesDB.useClassColorsPlayer = self:GetChecked()
         addon.UpdateFrame(addon.playerFrame, "player")
-    end, playerLeftY, MinimalUnitFramesDB.useClassColorsPlayer)
-    playerLeftY = playerLeftY - 30
+    end, MinimalUnitFramesDB.useClassColorsPlayer)
 
     CreateOptionElement(playerLeftColumn, "Checkbox", "Show Player Frame", "Display Player frame", function(self)
         MinimalUnitFramesDB.showPlayerFrame = self:GetChecked()
         addon.UpdateFramesVisibility()
-    end, playerLeftY, MinimalUnitFramesDB.showPlayerFrame)
-    playerLeftY = playerLeftY - 30
+    end, MinimalUnitFramesDB.showPlayerFrame)
 
     CreateOptionElement(playerLeftColumn, "Checkbox", "Show Player Power Bar", "Display power bar on Player frame", function(self)
         MinimalUnitFramesDB.showPlayerPowerBar = self:GetChecked()
         addon.UpdateFramePowerBarVisibility("player")
-    end, playerLeftY, MinimalUnitFramesDB.showPlayerPowerBar)
-    playerLeftY = playerLeftY - 30
+    end, MinimalUnitFramesDB.showPlayerPowerBar)
 
     CreateOptionElement(playerLeftColumn, "Checkbox", "Show Player Frame Text", "Display text on Player frame", function(self)
         MinimalUnitFramesDB.showPlayerFrameText = self:GetChecked()
         addon.UpdateFrameTextVisibility("player")
-    end, playerLeftY, MinimalUnitFramesDB.showPlayerFrameText)
-    playerLeftY = playerLeftY - 30
+    end, MinimalUnitFramesDB.showPlayerFrameText)
 
     CreateOptionElement(playerLeftColumn, "Checkbox", "Show Player Level Text", "Display level text on Player frame", function(self)
         MinimalUnitFramesDB.showPlayerLevelText = self:GetChecked()
         addon.UpdateLevelTextVisibility("player")
-    end, playerLeftY, MinimalUnitFramesDB.showPlayerLevelText)
-    playerLeftY = playerLeftY - 30
+    end, MinimalUnitFramesDB.showPlayerLevelText)
 
     CreateOptionElement(playerLeftColumn, "Checkbox", "Show Player Buffs", "Display buffs on Player frame", function(self)
         MinimalUnitFramesDB.showPlayerBuffs = self:GetChecked()
@@ -433,8 +387,7 @@ local function CreateOptions(frame)
         if addon.Auras then
             addon.UpdateFramesVisibility()
         end
-    end, playerLeftY, MinimalUnitFramesDB.showPlayerBuffs)
-    playerLeftY = playerLeftY - 30
+    end, MinimalUnitFramesDB.showPlayerBuffs)
 
     CreateOptionElement(playerLeftColumn, "Checkbox", "Show Player Debuffs", "Display debuffs on Player frame", function(self)
         MinimalUnitFramesDB.showPlayerDebuffs = self:GetChecked()
@@ -444,8 +397,7 @@ local function CreateOptions(frame)
         if addon.Auras then
             addon.UpdateFramesVisibility()
         end
-    end, playerLeftY, MinimalUnitFramesDB.showPlayerDebuffs)
-    playerLeftY = playerLeftY - 30
+    end, MinimalUnitFramesDB.showPlayerDebuffs)
 
     CreateOptionElement(playerLeftColumn, "Checkbox", "Show Combat Feedback", "Display combat feedback text", function(self)
         MinimalUnitFramesDB.showCombatFeedback = self:GetChecked()
@@ -455,160 +407,265 @@ local function CreateOptions(frame)
         if addon.CombatText then
             addon.CombatText:UpdateVisibility()
         end
-    end, playerLeftY, MinimalUnitFramesDB.showCombatFeedback)
-    playerLeftY = playerLeftY - 50
+    end, MinimalUnitFramesDB.showCombatFeedback)
 
     CreateOptionElement(playerLeftColumn, "Dropdown", "Player Frame Strata", "Set the strata of the Player frame", function(value)
         MinimalUnitFramesDB.playerStrata = value
         addon.UpdateFrameStrata(addon.playerFrame, "player")
-    end, playerLeftY, MinimalUnitFramesDB.playerStrata, {
+    end, MinimalUnitFramesDB.playerStrata, {
         items = addon.Util.GetMediaList("stratas")
     })
-    playerLeftY = playerLeftY - 50
 
     CreateOptionElement(playerLeftColumn, "Dropdown", "Player Anchor Point", "Set the anchor point of the Player frame", function(value)
         MinimalUnitFramesDB.playerAnchor = value
         addon.UpdateFramePosition(addon.playerFrame, "player")
-    end, playerLeftY, MinimalUnitFramesDB.playerAnchor, {
+    end, MinimalUnitFramesDB.playerAnchor, {
         items = addon.Util.GetMediaList("anchorPoints")
+    })
+
+    CreateOptionElement(playerLeftColumn, "Input", "Player Aura Whitelist", "Enter comma-separated aura names to always show", function(value)
+        MinimalUnitFramesDB.playerAuraWhitelist = addon.Util.SplitString(value, ",")
+        addon.UpdateAllFrames()
+    end, table.concat(MinimalUnitFramesDB.playerAuraWhitelist or {}, ","))
+
+    CreateOptionElement(playerLeftColumn, "Input", "Player Aura Blacklist", "Enter comma-separated aura names to never show", function(value)
+        MinimalUnitFramesDB.playerAuraBlacklist = addon.Util.SplitString(value, ",")
+        addon.UpdateAllFrames()
+    end, table.concat(MinimalUnitFramesDB.playerAuraBlacklist or {}, ","))
+
+    CreateOptionElement(playerLeftColumn, "Slider", "Combat Feedback Font Size", "Adjust the font size for combat feedback", function(self, value)
+        MinimalUnitFramesDB.combatFeedbackFontSize = value
+        addon.CombatText:UpdateCombatFeedbackFontSize()
+    end, MinimalUnitFramesDB.combatFeedbackFontSize or addon.Config.combatFeedbackConfig.fontSize, {
+        min = 8,
+        max = 72,
+        step = 1
+    })
+
+    CreateOptionElement(playerLeftColumn, "Dropdown", "Combat Feedback Anchor", "Set the anchor point for combat feedback", function(value)
+        addon.Config.combatFeedbackConfig.anchorPoint = value
+        addon.CombatText:CreateCombatFeedback(addon.playerFrame)
+    end, addon.Config.combatFeedbackConfig.anchorPoint, {
+        items = addon.Util.GetMediaList("anchorPoints")
+    })
+
+    CreateOptionElement(playerLeftColumn, "Dropdown", "Player Aura Anchor", "Set the anchor point for player auras", function(value)
+        MinimalUnitFramesDB.playerAuraAnchor = value
+        addon.UpdateAllFrames()
+    end, MinimalUnitFramesDB.playerAuraAnchor or "BOTTOMLEFT", {
+        items = addon.Util.GetMediaList("anchorPoints")
+    })
+
+    CreateOptionElement(playerRightColumn, "Slider", "Player Aura X Offset", "Adjust the horizontal offset of player auras", function(self, value)
+        MinimalUnitFramesDB.playerAuraXOffset = value
+        addon.UpdateAllFrames()
+    end, MinimalUnitFramesDB.playerAuraXOffset or 0, {
+        min = -100,
+        max = 100,
+        step = 1
     })
 
     -- Player Frame Options (Right Column)
     CreateOptionElement(playerRightColumn, "Slider", "Player Width", "Adjust the width of the Player frame", function(self, value)
         MinimalUnitFramesDB.playerWidth = value
         addon.UpdateFrameSize(addon.playerFrame, "player")
-    end, playerRightY, MinimalUnitFramesDB.playerWidth, {
+    end, MinimalUnitFramesDB.playerWidth, {
         min = 50,
         max = 400,
         step = 1
     })
-    playerRightY = playerRightY - 50
 
     CreateOptionElement(playerRightColumn, "Slider", "Player Height", "Adjust the height of the Player frame", function(self, value)
         MinimalUnitFramesDB.playerHeight = value
         addon.UpdateFrameSize(addon.playerFrame, "player")
-    end, playerRightY, MinimalUnitFramesDB.playerHeight, {
+    end, MinimalUnitFramesDB.playerHeight, {
         min = 20,
         max = 200,
         step = 1
     })
-    playerRightY = playerRightY - 50
 
     CreateOptionElement(playerRightColumn, "Slider", "Player X Position", "Adjust the horizontal position of the Player frame", function(self, value)
         MinimalUnitFramesDB.playerXPos = value
         addon.UpdateFramePosition(addon.playerFrame, "player")
-    end, playerRightY, MinimalUnitFramesDB.playerXPos, {
+    end, MinimalUnitFramesDB.playerXPos, {
         min = -800,
         max = 800,
         step = 1
     })
-    playerRightY = playerRightY - 50
 
     CreateOptionElement(playerRightColumn, "Slider", "Player Y Position", "Adjust the vertical position of the Player frame", function(self, value)
         MinimalUnitFramesDB.playerYPos = value
         addon.UpdateFramePosition(addon.playerFrame, "player")
-    end, playerRightY, MinimalUnitFramesDB.playerYPos, {
+    end, MinimalUnitFramesDB.playerYPos, {
         min = -600,
         max = 600,
         step = 1
     })
-    playerRightY = playerRightY - 85
 
     CreateOptionElement(playerRightColumn, "Slider", "Player Buff Size", "Adjust the size of player buff icons", function(self, value)
         MinimalUnitFramesDB.playerBuffSize = value
         addon.UpdateAllFrames()
-    end, playerRightY, MinimalUnitFramesDB.playerBuffSize or addon.Config.auraConfig.player.buffs.size, {
+    end, MinimalUnitFramesDB.playerBuffSize or addon.Config.auraConfig.player.buffs.size, {
         min = 10,
         max = 50,
         step = 1
     })
-    playerRightY = playerRightY - 50
 
     CreateOptionElement(playerRightColumn, "Slider", "Player Debuff Size", "Adjust the size of player debuff icons", function(self, value)
         MinimalUnitFramesDB.playerDebuffSize = value
         addon.UpdateAllFrames()
-    end, playerRightY, MinimalUnitFramesDB.playerDebuffSize or addon.Config.auraConfig.player.debuffs.size, {
+    end, MinimalUnitFramesDB.playerDebuffSize or addon.Config.auraConfig.player.debuffs.size, {
         min = 10,
         max = 50,
         step = 1
     })
-    playerRightY = playerRightY - 50
 
-    CreateOptionElement(playerRightColumn, "Slider", "Player Aura Buttons Per Row", "Adjust the number of aura buttons per row", function(self, value)
-        MinimalUnitFramesDB.playerAuraButtonsPerRow = value
+    CreateOptionElement(playerRightColumn, "Slider", "Player Buffs Per Row", "Adjust the number of buffs per row for player", function(self, value)
+        MinimalUnitFramesDB.playerBuffsPerRow = value
         addon.UpdateAllFrames()
-    end, playerRightY, MinimalUnitFramesDB.playerAuraButtonsPerRow or addon.Config.auraConfig.player.buffs.perRow, {
+    end, MinimalUnitFramesDB.playerBuffsPerRow or addon.Config.auraConfig.player.buffs.perRow, {
         min = 1,
         max = 20,
         step = 1
     })
-    playerRightY = playerRightY - 50
+
+    CreateOptionElement(playerRightColumn, "Slider", "Player Debuffs Per Row", "Adjust the number of debuffs per row for player", function(self, value)
+        MinimalUnitFramesDB.playerDebuffsPerRow = value
+        addon.UpdateAllFrames()
+    end, MinimalUnitFramesDB.playerDebuffsPerRow or addon.Config.auraConfig.player.debuffs.perRow, {
+        min = 1,
+        max = 20,
+        step = 1
+    })
 
     CreateOptionElement(playerRightColumn, "Slider", "Player Buff Limit", "Set the maximum number of buffs to display", function(self, value)
         MinimalUnitFramesDB.playerBuffLimit = value
         addon.UpdateAllFrames()
-    end, playerRightY, MinimalUnitFramesDB.playerBuffLimit or 32, {
+    end, MinimalUnitFramesDB.playerBuffLimit or 32, {
         min = 0,
         max = 40,
         step = 1
     })
-    playerRightY = playerRightY - 50
 
     CreateOptionElement(playerRightColumn, "Slider", "Player Debuff Limit", "Set the maximum number of debuffs to display", function(self, value)
         MinimalUnitFramesDB.playerDebuffLimit = value
         addon.UpdateAllFrames()
-    end, playerRightY, MinimalUnitFramesDB.playerDebuffLimit or 16, {
+    end, MinimalUnitFramesDB.playerDebuffLimit or 16, {
         min = 0,
         max = 40,
         step = 1
     })
-    playerRightY = playerRightY - 50
+
+    CreateOptionElement(playerRightColumn, "Checkbox", "Show Buff Stack Text", "Display stack count on buffs", function(self)
+        MinimalUnitFramesDB.playerShowAuraStackText = self:GetChecked()
+        addon.UpdateAllFrames()
+    end, MinimalUnitFramesDB.playerShowAuraStackText)
+
+    CreateOptionElement(playerLeftColumn, "Slider", "Buff Stack Text Size", "Adjust the size of buff stack text", function(self, value)
+        MinimalUnitFramesDB.playerAuraStackTextSize = value
+        addon.UpdateAllFrames()
+    end, MinimalUnitFramesDB.playerAuraStackTextSize or addon.Config.auraConfig.player.buffs.stackTextSize, {
+        min = 6,
+        max = 20,
+        step = 1
+    })
+
+    CreateOptionElement(playerRightColumn, "Dropdown", "Buff Stack Text Anchor", "Set the anchor point for buff stack text", function(value)
+        MinimalUnitFramesDB.playerAuraStackTextAnchor = value
+        addon.UpdateAllFrames()
+    end, MinimalUnitFramesDB.playerAuraStackTextAnchor or addon.Config.auraConfig.player.buffs.stackTextAnchor, {
+        items = addon.Util.GetMediaList("anchorPoints")
+    })
+
+    CreateOptionElement(playerRightColumn, "Slider", "Combat Feedback X Offset", "Adjust the horizontal offset of combat feedback", function(self, value)
+        addon.Config.combatFeedbackConfig.xOffset = value
+        addon.CombatText:CreateCombatFeedback(addon.playerFrame)
+    end, addon.Config.combatFeedbackConfig.xOffset, {
+        min = -100,
+        max = 100,
+        step = 1
+    })
+
+    CreateOptionElement(playerRightColumn, "Slider", "Combat Feedback Y Offset", "Adjust the vertical offset of combat feedback", function(self, value)
+        addon.Config.combatFeedbackConfig.yOffset = value
+        addon.CombatText:CreateCombatFeedback(addon.playerFrame)
+    end, addon.Config.combatFeedbackConfig.yOffset, {
+        min = -100,
+        max = 100,
+        step = 1
+    })
+
+    CreateOptionElement(playerRightColumn, "Slider", "Combat Feedback Duration", "Set the duration of combat feedback text", function(self, value)
+        addon.Config.combatFeedbackConfig.duration = value
+    end, addon.Config.combatFeedbackConfig.duration, {
+        min = 0.5,
+        max = 5,
+        step = 0.1
+    })
+
+    CreateOptionElement(playerRightColumn, "Slider", "Combat Feedback Fade Duration", "Set the fade-out duration of combat feedback text", function(self, value)
+        addon.Config.combatFeedbackConfig.fadeOutDuration = value
+    end, addon.Config.combatFeedbackConfig.fadeOutDuration, {
+        min = 0.1,
+        max = 2,
+        step = 0.1
+    })
+
+    CreateOptionElement(playerRightColumn, "Slider", "Player Aura Y Offset", "Adjust the vertical offset of player auras", function(self, value)
+        MinimalUnitFramesDB.playerAuraYOffset = value
+        addon.UpdateAllFrames()
+    end, MinimalUnitFramesDB.playerAuraYOffset or 0, {
+        min = -100,
+        max = 100,
+        step = 1
+    })
+
+    CreateOptionElement(playerRightColumn, "Slider", "Player Aura Vertical Spacing", "Adjust the vertical space between buff and debuff rows", function(self, value)
+        MinimalUnitFramesDB.playerAuraVerticalSpacing = value
+        addon.UpdateAllFrames()
+    end, MinimalUnitFramesDB.playerAuraVerticalSpacing or 2, {
+        min = 0,
+        max = 20,
+        step = 1
+    })
 
     -- *********************
     -- Target Frame Options
     -- *********************
-    local targetOptions = content.tabContents[3]
+    local targetOptions = content.tabContents[3].scrollContent
     local targetLeftColumn = CreateFrame("Frame", nil, targetOptions)
     targetLeftColumn:SetSize(targetOptions:GetWidth() / 2 - 10, targetOptions:GetHeight())
-    targetLeftColumn:SetPoint("TOPLEFT", targetOptions, "TOPLEFT", 0, -10)
+    targetLeftColumn:SetPoint("TOPLEFT", targetOptions, "TOPLEFT", 0, 0)
 
     local targetRightColumn = CreateFrame("Frame", nil, targetOptions)
     targetRightColumn:SetSize(targetOptions:GetWidth() / 2 - 10, targetOptions:GetHeight())
-    targetRightColumn:SetPoint("TOPRIGHT", targetOptions, "TOPRIGHT", 0, -10)
-
-    local targetLeftY = 0
-    local targetRightY = 0
+    targetRightColumn:SetPoint("TOPRIGHT", targetOptions, "TOPRIGHT", 0, 0)
 
     -- Target Frame Options (Left Column)
     CreateOptionElement(targetLeftColumn, "Checkbox", "Use Target Class Colors", "Use class colors for target health bar", function(self)
         MinimalUnitFramesDB.useClassColorsTarget = self:GetChecked()
         addon.UpdateFrame(addon.targetFrame, "target")
-    end, targetLeftY, MinimalUnitFramesDB.useClassColorsTarget)
-    targetLeftY = targetLeftY - 30
+    end, MinimalUnitFramesDB.useClassColorsTarget)
 
     CreateOptionElement(targetLeftColumn, "Checkbox", "Show Target Frame", "Display Target frame", function(self)
         MinimalUnitFramesDB.showTargetFrame = self:GetChecked()
         addon.UpdateFramesVisibility()
-    end, targetLeftY, MinimalUnitFramesDB.showTargetFrame)
-    targetLeftY = targetLeftY - 30
+    end, MinimalUnitFramesDB.showTargetFrame)
 
     CreateOptionElement(targetLeftColumn, "Checkbox", "Show Target Power Bar", "Display power bar on Target frame", function(self)
         MinimalUnitFramesDB.showTargetPowerBar = self:GetChecked()
         addon.UpdateFramePowerBarVisibility("target")
-    end, targetLeftY, MinimalUnitFramesDB.showTargetPowerBar)
-    targetLeftY = targetLeftY - 30
+    end, MinimalUnitFramesDB.showTargetPowerBar)
 
     CreateOptionElement(targetLeftColumn, "Checkbox", "Show Target Text", "Display text on Target frame", function(self)
         MinimalUnitFramesDB.showTargetFrameText = self:GetChecked()
         addon.UpdateFrameTextVisibility("target")
-    end, targetLeftY, MinimalUnitFramesDB.showTargetFrameText)
-    targetLeftY = targetLeftY - 30
+    end, MinimalUnitFramesDB.showTargetFrameText)
 
     CreateOptionElement(targetLeftColumn, "Checkbox", "Show Target Level Text", "Display level text on Target frame", function(self)
         MinimalUnitFramesDB.showTargetLevelText = self:GetChecked()
         addon.UpdateLevelTextVisibility("target")
-    end, targetLeftY, MinimalUnitFramesDB.showTargetLevelText)
-    targetLeftY = targetLeftY - 30
+    end, MinimalUnitFramesDB.showTargetLevelText)
 
     CreateOptionElement(targetLeftColumn, "Checkbox", "Show Target Buffs", "Display buffs on Target frame", function(self)
         MinimalUnitFramesDB.showTargetBuffs = self:GetChecked()
@@ -618,8 +675,7 @@ local function CreateOptions(frame)
         if addon.Auras then
             addon.UpdateFramesVisibility()
         end
-    end, targetLeftY, MinimalUnitFramesDB.showTargetBuffs)
-    targetLeftY = targetLeftY - 30
+    end, MinimalUnitFramesDB.showTargetBuffs)
 
     CreateOptionElement(targetLeftColumn, "Checkbox", "Show Target Debuffs", "Display debuffs on Target frame", function(self)
         MinimalUnitFramesDB.showTargetDebuffs = self:GetChecked()
@@ -629,29 +685,32 @@ local function CreateOptions(frame)
         if addon.Auras then
             addon.UpdateFramesVisibility()
         end
-    end, targetLeftY, MinimalUnitFramesDB.showTargetDebuffs)
-    targetLeftY = targetLeftY - 50
+    end, MinimalUnitFramesDB.showTargetDebuffs)
 
     CreateOptionElement(targetLeftColumn, "Dropdown", "Target Frame Strata", "Set the strata of the Target frame", function(value)
         MinimalUnitFramesDB.targetStrata = value
         addon.UpdateFrameStrata(addon.targetFrame, "target")
-    end, targetLeftY, MinimalUnitFramesDB.targetStrata, {
+    end, MinimalUnitFramesDB.targetStrata, {
         items = addon.Util.GetMediaList("stratas")
     })
-    targetLeftY = targetLeftY - 50
 
     CreateOptionElement(targetLeftColumn, "Dropdown", "Anchored To", "Choose where to anchor the Target frame", function(value)
         MinimalUnitFramesDB.targetAnchoredTo = value
         addon.UpdateFramePosition(addon.targetFrame, "target")
-    end, targetLeftY, MinimalUnitFramesDB.targetAnchoredTo or "Screen", {
+    end, MinimalUnitFramesDB.targetAnchoredTo or "Screen", {
         items = {"Screen", "Player Frame"}
     })
-    targetLeftY = targetLeftY - 50
 
     CreateOptionElement(targetLeftColumn, "Dropdown", "Target Anchor Point", "Set the anchor point of the Target frame", function(value)
         MinimalUnitFramesDB.targetAnchor = value
         addon.UpdateFramePosition(addon.targetFrame, "target")
-    end, targetLeftY, MinimalUnitFramesDB.targetAnchor, {
+    end, MinimalUnitFramesDB.targetAnchor, {
+        items = addon.Util.GetMediaList("anchorPoints")
+    })
+    CreateOptionElement(targetLeftColumn, "Dropdown", "Target Aura Anchor", "Set the anchor point for target auras", function(value)
+        MinimalUnitFramesDB.targetAuraAnchor = value
+        addon.UpdateAllFrames()
+    end, MinimalUnitFramesDB.targetAuraAnchor or "BOTTOMLEFT", {
         items = addon.Util.GetMediaList("anchorPoints")
     })
 
@@ -659,151 +718,169 @@ local function CreateOptions(frame)
     CreateOptionElement(targetRightColumn, "Slider", "Target Width", "Adjust the width of the Target frame", function(self, value)
         MinimalUnitFramesDB.targetWidth = value
         addon.UpdateFrameSize(addon.targetFrame, "target")
-    end, targetRightY, MinimalUnitFramesDB.targetWidth, {
+    end, MinimalUnitFramesDB.targetWidth, {
         min = 50,
         max = 400,
         step = 1
     })
-    targetRightY = targetRightY - 50
 
     CreateOptionElement(targetRightColumn, "Slider", "Target Height", "Adjust the height of the Target frame", function(self, value)
         MinimalUnitFramesDB.targetHeight = value
         addon.UpdateFrameSize(addon.targetFrame, "target")
-    end, targetRightY, MinimalUnitFramesDB.targetHeight, {
+    end, MinimalUnitFramesDB.targetHeight, {
         min = 20,
         max = 200,
         step = 1
     })
-    targetRightY = targetRightY - 50
 
     CreateOptionElement(targetRightColumn, "Slider", "Target X Position", "Adjust the horizontal position of the Target frame", function(self, value)
         MinimalUnitFramesDB.targetXPos = value
         addon.UpdateFramePosition(addon.targetFrame, "target")
-    end, targetRightY, MinimalUnitFramesDB.targetXPos, {
+    end, MinimalUnitFramesDB.targetXPos, {
         min = -800,
         max = 800,
         step = 1
     })
-    targetRightY = targetRightY - 50
 
     CreateOptionElement(targetRightColumn, "Slider", "Target Y Position", "Adjust the vertical position of the Target frame", function(self, value)
         MinimalUnitFramesDB.targetYPos = value
         addon.UpdateFramePosition(addon.targetFrame, "target")
-    end, targetRightY, MinimalUnitFramesDB.targetYPos, {
+    end, MinimalUnitFramesDB.targetYPos, {
         min = -600,
         max = 600,
         step = 1
     })
-    targetRightY = targetRightY - 85
 
     CreateOptionElement(targetRightColumn, "Slider", "Target Buff Size", "Adjust the size of target buff icons", function(self, value)
         MinimalUnitFramesDB.targetBuffSize = value
         addon.UpdateAllFrames()
-    end, targetRightY, MinimalUnitFramesDB.targetBuffSize or addon.Config.auraConfig.target.buffs.size, {
+    end, MinimalUnitFramesDB.targetBuffSize or addon.Config.auraConfig.target.buffs.size, {
         min = 10,
         max = 50,
         step = 1
     })
-    targetRightY = targetRightY - 50
 
     CreateOptionElement(targetRightColumn, "Slider", "Target Debuff Size", "Adjust the size of target debuff icons", function(self, value)
         MinimalUnitFramesDB.targetDebuffSize = value
         addon.UpdateAllFrames()
-    end, targetRightY, MinimalUnitFramesDB.targetDebuffSize or addon.Config.auraConfig.target.debuffs.size, {
+    end, MinimalUnitFramesDB.targetDebuffSize or addon.Config.auraConfig.target.debuffs.size, {
         min = 10,
         max = 50,
         step = 1
     })
-    targetRightY = targetRightY - 50
 
-    CreateOptionElement(targetRightColumn, "Slider", "Target Aura Buttons Per Row", "Adjust the number of aura buttons per row", function(self, value)
-        MinimalUnitFramesDB.targetAuraButtonsPerRow = value
+    CreateOptionElement(targetRightColumn, "Slider", "Target Buffs Per Row", "Adjust the number of buffs per row for target", function(self, value)
+        MinimalUnitFramesDB.targetBuffsPerRow = value
         addon.UpdateAllFrames()
-    end, targetRightY, MinimalUnitFramesDB.targetAuraButtonsPerRow or addon.Config.auraConfig.target.buffs.perRow, {
+    end, MinimalUnitFramesDB.targetBuffsPerRow or addon.Config.auraConfig.target.buffs.perRow, {
         min = 1,
         max = 20,
         step = 1
     })
-    targetRightY = targetRightY - 50
+
+    CreateOptionElement(targetRightColumn, "Slider", "Target Debuffs Per Row", "Adjust the number of debuffs per row for target", function(self, value)
+        MinimalUnitFramesDB.targetDebuffsPerRow = value
+        addon.UpdateAllFrames()
+    end, MinimalUnitFramesDB.targetDebuffsPerRow or addon.Config.auraConfig.target.debuffs.perRow, {
+        min = 1,
+        max = 20,
+        step = 1
+    })
 
     CreateOptionElement(targetRightColumn, "Slider", "Target Buff Limit", "Set the maximum number of buffs to display", function(self, value)
         MinimalUnitFramesDB.targetBuffLimit = value
         addon.UpdateAllFrames()
-    end, targetRightY, MinimalUnitFramesDB.targetBuffLimit or 32, {
+    end, MinimalUnitFramesDB.targetBuffLimit or 32, {
         min = 0,
         max = 40,
         step = 1
     })
-    targetRightY = targetRightY - 50
 
     CreateOptionElement(targetRightColumn, "Slider", "Target Debuff Limit", "Set the maximum number of debuffs to display", function(self, value)
         MinimalUnitFramesDB.targetDebuffLimit = value
         addon.UpdateAllFrames()
-    end, targetRightY, MinimalUnitFramesDB.targetDebuffLimit or 16, {
+    end, MinimalUnitFramesDB.targetDebuffLimit or 16, {
         min = 0,
         max = 40,
         step = 1
     })
-    targetRightY = targetRightY - 50
+
+    CreateOptionElement(targetRightColumn, "Slider", "Target Aura X Offset", "Adjust the horizontal offset of target auras", function(self, value)
+        MinimalUnitFramesDB.targetAuraXOffset = value
+        addon.UpdateAllFrames()
+    end, MinimalUnitFramesDB.targetAuraXOffset or 0, {
+        min = -100,
+        max = 100,
+        step = 1
+    })
+
+    CreateOptionElement(targetRightColumn, "Slider", "Target Aura Y Offset", "Adjust the vertical offset of target auras", function(self, value)
+        MinimalUnitFramesDB.targetAuraYOffset = value
+        addon.UpdateAllFrames()
+    end, MinimalUnitFramesDB.targetAuraYOffset or 0, {
+        min = -100,
+        max = 100,
+        step = 1
+    })
+
+    CreateOptionElement(targetRightColumn, "Slider", "Target Aura Vertical Spacing", "Adjust the vertical space between buff and debuff rows", function(self, value)
+        MinimalUnitFramesDB.targetAuraVerticalSpacing = value
+        addon.UpdateAllFrames()
+    end, MinimalUnitFramesDB.targetAuraVerticalSpacing or 2, {
+        min = 0,
+        max = 20,
+        step = 1
+    })
 
     -- *********************
     -- Target of Target Frame Options
     -- *********************
-    local totOptions = content.tabContents[4]
+    local totOptions = content.tabContents[4].scrollContent
     local totLeftColumn = CreateFrame("Frame", nil, totOptions)
     totLeftColumn:SetSize(totOptions:GetWidth() / 2 - 10, totOptions:GetHeight())
-    totLeftColumn:SetPoint("TOPLEFT", totOptions, "TOPLEFT", 0, -10)
+    totLeftColumn:SetPoint("TOPLEFT", totOptions, "TOPLEFT", 0, 0)
 
     local totRightColumn = CreateFrame("Frame", nil, totOptions)
     totRightColumn:SetSize(totOptions:GetWidth() / 2 - 10, totOptions:GetHeight())
-    totRightColumn:SetPoint("TOPRIGHT", totOptions, "TOPRIGHT", 0, -10)
-
-    local totLeftY = 0
-    local totRightY = 0
+    totRightColumn:SetPoint("TOPRIGHT", totOptions, "TOPRIGHT", 0, 0)
 
     -- Target of Target Frame Options (Left Column)
     CreateOptionElement(totLeftColumn, "Checkbox", "Use Target of Target Class Colors", "Use class colors for player health bar", function(self)
         MinimalUnitFramesDB.useClassColorsTargetoftarget = self:GetChecked()
         addon.UpdateFrame(addon.targetoftargetFrame, "targetoftarget")
-    end, totLeftY, MinimalUnitFramesDB.useClassColorsTargetoftarget)
-    totLeftY = totLeftY - 30
+    end, MinimalUnitFramesDB.useClassColorsTargetoftarget)
 
     CreateOptionElement(totLeftColumn, "Checkbox", "Show Target of Target Frame", "Display Target of Target frame", function(self)
         MinimalUnitFramesDB.showTargetoftargetFrame = self:GetChecked()
         addon.UpdateFramesVisibility()
-    end, totLeftY, MinimalUnitFramesDB.showTargetoftargetFrame)
-    totLeftY = totLeftY - 30
+    end, MinimalUnitFramesDB.showTargetoftargetFrame)
 
     CreateOptionElement(totLeftColumn, "Checkbox", "Show Target of Target Power Bar", "Display power bar on Target of Target frame", function(self)
         MinimalUnitFramesDB.showTargetoftargetPowerBar = self:GetChecked()
         addon.UpdateFramePowerBarVisibility("targetoftarget")
-    end, totLeftY, MinimalUnitFramesDB.showTargetoftargetPowerBar)
-    totLeftY = totLeftY - 30
+    end, MinimalUnitFramesDB.showTargetoftargetPowerBar)
 
     CreateOptionElement(totLeftColumn, "Checkbox", "Show Target of Target Text", "Display text on Target of Target frame", function(self)
         MinimalUnitFramesDB.showTargetoftargetFrameText = self:GetChecked()
         addon.UpdateFrameTextVisibility("targetoftarget")
-    end, totLeftY, MinimalUnitFramesDB.showTargetoftargetFrameText)
-    totLeftY = totLeftY - 30
+    end, MinimalUnitFramesDB.showTargetoftargetFrameText)
 
     CreateOptionElement(totLeftColumn, "Checkbox", "Show Target of Target Level Text", "Display level text on Target of Target frame", function(self)
         MinimalUnitFramesDB.showTargetoftargetLevelText = self:GetChecked()
         addon.UpdateLevelTextVisibility("targetoftarget")
-    end, totLeftY, MinimalUnitFramesDB.showTargetoftargetLevelText)
-    totLeftY = totLeftY - 50
+    end, MinimalUnitFramesDB.showTargetoftargetLevelText)
 
     CreateOptionElement(totLeftColumn, "Dropdown", "Target of Target Frame Strata", "Set the strata of the Target of Target frame", function(value)
         MinimalUnitFramesDB.targetoftargetStrata = value
         addon.UpdateFrameStrata(addon.targetoftargetFrame, "targetoftarget")
-    end, totLeftY, MinimalUnitFramesDB.targetoftargetStrata, {
+    end, MinimalUnitFramesDB.targetoftargetStrata, {
         items = addon.Util.GetMediaList("stratas")
     })
-    totLeftY = totLeftY - 50
 
     CreateOptionElement(totLeftColumn, "Dropdown", "Target of Target Anchor Point", "Set the anchor point of the Target of Target frame", function(value)
         MinimalUnitFramesDB.targetoftargetAnchor = value
         addon.UpdateFramePosition(addon.targetoftargetFrame, "targetoftarget")
-    end, totLeftY, MinimalUnitFramesDB.targetoftargetAnchor, {
+    end, MinimalUnitFramesDB.targetoftargetAnchor, {
         items = addon.Util.GetMediaList("anchorPoints")
     })
 
@@ -811,100 +888,98 @@ local function CreateOptions(frame)
     CreateOptionElement(totRightColumn, "Slider", "Target of Target Width", "Adjust the width of the Target of Target frame", function(self, value)
         MinimalUnitFramesDB.targetoftargetWidth = value
         addon.UpdateFrameSize(addon.targetoftargetFrame, "targetoftarget")
-    end, totRightY, MinimalUnitFramesDB.targetoftargetWidth, {
+    end, MinimalUnitFramesDB.targetoftargetWidth, {
         min = 50,
         max = 400,
         step = 1
     })
-    totRightY = totRightY - 50
 
     CreateOptionElement(totRightColumn, "Slider", "Target of Target Height", "Adjust the height of the Target of Target frame", function(self, value)
         MinimalUnitFramesDB.targetoftargetHeight = value
         addon.UpdateFrameSize(addon.targetoftargetFrame, "targetoftarget")
-    end, totRightY, MinimalUnitFramesDB.targetoftargetHeight, {
+    end, MinimalUnitFramesDB.targetoftargetHeight, {
         min = 20,
         max = 200,
         step = 1
     })
-    totRightY = totRightY - 50
 
     CreateOptionElement(totRightColumn, "Slider", "Target of Target X Position", "Adjust the horizontal position of the Target of Target frame", function(self, value)
         MinimalUnitFramesDB.targetoftargetXPos = value
         addon.UpdateFramePosition(addon.targetoftargetFrame, "targetoftarget")
-    end, totRightY, MinimalUnitFramesDB.targetoftargetXPos, {
+    end, MinimalUnitFramesDB.targetoftargetXPos, {
         min = -800,
         max = 800,
         step = 1
     })
-    totRightY = totRightY - 50
 
     CreateOptionElement(totRightColumn, "Slider", "Target of Target Y Position", "Adjust the vertical position of the Target of Target frame", function(self, value)
         MinimalUnitFramesDB.targetoftargetYPos = value
         addon.UpdateFramePosition(addon.targetoftargetFrame, "targetoftarget")
-    end, totRightY, MinimalUnitFramesDB.targetoftargetYPos, {
+    end, MinimalUnitFramesDB.targetoftargetYPos, {
         min = -600,
         max = 600,
         step = 1
     })
 
+    CreateOptionElement(targetRightColumn, "Input", "Target Aura Whitelist", "Enter comma-separated aura names or spell IDs to always show", function(value)
+        MinimalUnitFramesDB.targetAuraWhitelist = addon.Util.SplitString(value, ",")
+        addon.UpdateAllFrames()
+    end, table.concat(MinimalUnitFramesDB.targetAuraWhitelist or {}, ","))
+
+    CreateOptionElement(targetRightColumn, "Input", "Target Aura Blacklist", "Enter comma-separated aura names or spell IDs to never show", function(value)
+        MinimalUnitFramesDB.targetAuraBlacklist = addon.Util.SplitString(value, ",")
+        addon.UpdateAllFrames()
+    end, table.concat(MinimalUnitFramesDB.targetAuraBlacklist or {}, ","))
+
     -- *********************
     -- Pet Frame Options
     -- *********************
-    local petOptions = content.tabContents[5]
+    local petOptions = content.tabContents[5].scrollContent
     local petLeftColumn = CreateFrame("Frame", nil, petOptions)
     petLeftColumn:SetSize(petOptions:GetWidth() / 2 - 10, petOptions:GetHeight())
-    petLeftColumn:SetPoint("TOPLEFT", petOptions, "TOPLEFT", 0, -10)
+    petLeftColumn:SetPoint("TOPLEFT", petOptions, "TOPLEFT", 0, 0)
 
     local petRightColumn = CreateFrame("Frame", nil, petOptions)
     petRightColumn:SetSize(petOptions:GetWidth() / 2 - 10, petOptions:GetHeight())
-    petRightColumn:SetPoint("TOPRIGHT", petOptions, "TOPRIGHT", 0, -10)
-
-    local petLeftY = 0
-    local petRightY = 0
+    petRightColumn:SetPoint("TOPRIGHT", petOptions, "TOPRIGHT", 0, 0)
 
     -- Pet Frame Options (Left Column)
     CreateOptionElement(petLeftColumn, "Checkbox", "Use Pet Class Colors", "Use class colors for Pet health bar", function(self)
         MinimalUnitFramesDB.useClassColorsPet = self:GetChecked()
         addon.UpdateFrame(addon.petFrame, "pet")
-    end, petLeftY, MinimalUnitFramesDB.useClassColorsPet)
-    petLeftY = petLeftY - 30
+    end, MinimalUnitFramesDB.useClassColorsPet)
 
     CreateOptionElement(petLeftColumn, "Checkbox", "Show Pet Frame", "Display Pet frame", function(self)
         MinimalUnitFramesDB.showPetFrame = self:GetChecked()
         addon.UpdateFramesVisibility()
-    end, petLeftY, MinimalUnitFramesDB.showPetFrame)
-    petLeftY = petLeftY - 30
+    end, MinimalUnitFramesDB.showPetFrame)
 
     CreateOptionElement(petLeftColumn, "Checkbox", "Show Pet Power Bar", "Display power bar on Pet frame", function(self)
         MinimalUnitFramesDB.showPetPowerBar = self:GetChecked()
         addon.UpdateFramePowerBarVisibility("pet")
-    end, petLeftY, MinimalUnitFramesDB.showPetPowerBar)
-    petLeftY = petLeftY - 30
+    end, MinimalUnitFramesDB.showPetPowerBar)
 
     CreateOptionElement(petLeftColumn, "Checkbox", "Show Pet Frame Text", "Display text on Pet frame", function(self)
         MinimalUnitFramesDB.showPetFrameText = self:GetChecked()
         addon.UpdateFrameTextVisibility("pet")
-    end, petLeftY, MinimalUnitFramesDB.showPetFrameText)
-    petLeftY = petLeftY - 30
+    end, MinimalUnitFramesDB.showPetFrameText)
 
     CreateOptionElement(petLeftColumn, "Checkbox", "Show Pet Level Text", "Display level text on Pet frame", function(self)
         MinimalUnitFramesDB.showPetLevelText = self:GetChecked()
         addon.UpdateLevelTextVisibility("pet")
-    end, petLeftY, MinimalUnitFramesDB.showPetLevelText)
-    petLeftY = petLeftY - 50
+    end, MinimalUnitFramesDB.showPetLevelText)
 
     CreateOptionElement(petLeftColumn, "Dropdown", "Pet Frame Strata", "Set the strata of the Pet frame", function(value)
         MinimalUnitFramesDB.petStrata = value
         addon.UpdateFrameStrata(addon.petFrame, "pet")
-    end, petLeftY, MinimalUnitFramesDB.petStrata, {
+    end, MinimalUnitFramesDB.petStrata, {
         items = addon.Util.GetMediaList("stratas")
     })
-    petLeftY = petLeftY - 50
 
     CreateOptionElement(petLeftColumn, "Dropdown", "Pet Anchor Point", "Set the anchor point of the Pet frame", function(value)
         MinimalUnitFramesDB.petAnchor = value
         addon.UpdateFramePosition(addon.petFrame, "pet")
-    end, petLeftY, MinimalUnitFramesDB.petAnchor, {
+    end, MinimalUnitFramesDB.petAnchor, {
         items = addon.Util.GetMediaList("anchorPoints")
     })
 
@@ -912,37 +987,34 @@ local function CreateOptions(frame)
     CreateOptionElement(petRightColumn, "Slider", "Pet Width", "Adjust the width of the Pet frame", function(self, value)
         MinimalUnitFramesDB.petWidth = value
         addon.UpdateFrameSize(addon.petFrame, "pet")
-    end, petRightY, MinimalUnitFramesDB.petWidth, {
+    end, MinimalUnitFramesDB.petWidth, {
         min = 50,
         max = 400,
         step = 1
     })
-    petRightY = petRightY - 50
 
     CreateOptionElement(petRightColumn, "Slider", "Pet Height", "Adjust the height of the Pet frame", function(self, value)
         MinimalUnitFramesDB.petHeight = value
         addon.UpdateFrameSize(addon.petFrame, "pet")
-    end, petRightY, MinimalUnitFramesDB.petHeight, {
+    end, MinimalUnitFramesDB.petHeight, {
         min = 20,
         max = 200,
         step = 1
     })
-    petRightY = petRightY - 50
 
     CreateOptionElement(petRightColumn, "Slider", "Pet X Position", "Adjust the horizontal position of the Pet frame", function(self, value)
         MinimalUnitFramesDB.petXPos = value
         addon.UpdateFramePosition(addon.petFrame, "pet")
-    end, petRightY, MinimalUnitFramesDB.petXPos, {
+    end, MinimalUnitFramesDB.petXPos, {
         min = -800,
         max = 800,
         step = 1
     })
-    petRightY = petRightY - 50
 
     CreateOptionElement(petRightColumn, "Slider", "Pet Y Position", "Adjust the vertical position of the Pet frame", function(self, value)
         MinimalUnitFramesDB.petYPos = value
         addon.UpdateFramePosition(addon.petFrame, "pet")
-    end, petRightY, MinimalUnitFramesDB.petYPos, {
+    end, MinimalUnitFramesDB.petYPos, {
         min = -600,
         max = 600,
         step = 1
@@ -951,61 +1023,52 @@ local function CreateOptions(frame)
     -- *********************
     -- Pet Target Frame Options
     -- *********************
-    local petTargetOptions = content.tabContents[6]
+    local petTargetOptions = content.tabContents[6].scrollContent
     local petTargetLeftColumn = CreateFrame("Frame", nil, petTargetOptions)
     petTargetLeftColumn:SetSize(petTargetOptions:GetWidth() / 2 - 10, petTargetOptions:GetHeight())
-    petTargetLeftColumn:SetPoint("TOPLEFT", petTargetOptions, "TOPLEFT", 0, -10)
+    targetLeftColumn:SetPoint("TOPLEFT", targetOptions, "TOPLEFT", 0, 0)
 
     local petTargetRightColumn = CreateFrame("Frame", nil, petTargetOptions)
     petTargetRightColumn:SetSize(petTargetOptions:GetWidth() / 2 - 10, petTargetOptions:GetHeight())
-    petTargetRightColumn:SetPoint("TOPRIGHT", petTargetOptions, "TOPRIGHT", 0, -10)
-
-    local petTargetLeftY = 0
-    local petTargetRightY = 0
+    petTargetRightColumn:SetPoint("TOPRIGHT", petTargetOptions, "TOPRIGHT", 0, 0)
 
     -- Pet Target Frame Options (Left Column)
     CreateOptionElement(petTargetLeftColumn, "Checkbox", "Use Pet Target Class Colors", "Use class colors for player health bar", function(self)
         MinimalUnitFramesDB.useClassColorsPetTarget = self:GetChecked()
         addon.UpdateFrame(addon.petTargetFrame, "pettarget")
-    end, petTargetLeftY, MinimalUnitFramesDB.useClassColorsPetTarget)
-    petTargetLeftY = petTargetLeftY - 30
+    end, MinimalUnitFramesDB.useClassColorsPetTarget)
 
     CreateOptionElement(petTargetLeftColumn, "Checkbox", "Show Pet Target Frame", "Display Pet Target frame", function(self)
         MinimalUnitFramesDB.showPetTargetFrame = self:GetChecked()
         addon.UpdateFramesVisibility()
-    end, petTargetLeftY, MinimalUnitFramesDB.showPetTargetFrame)
-    petTargetLeftY = petTargetLeftY - 30
+    end, MinimalUnitFramesDB.showPetTargetFrame)
 
     CreateOptionElement(petTargetLeftColumn, "Checkbox", "Show Pet Target Power Bar", "Display power bar on Pet Target frame", function(self)
         MinimalUnitFramesDB.showPetTargetPowerBar = self:GetChecked()
         addon.UpdateFramePowerBarVisibility("pettarget")
-    end, petTargetLeftY, MinimalUnitFramesDB.showPetTargetPowerBar)
-    petTargetLeftY = petTargetLeftY - 30
+    end, MinimalUnitFramesDB.showPetTargetPowerBar)
 
     CreateOptionElement(petTargetLeftColumn, "Checkbox", "Show Pet Target Frame Text", "Display text on Pet Target frame", function(self)
         MinimalUnitFramesDB.showPetTargetFrameText = self:GetChecked()
         addon.UpdateFrameTextVisibility("pettarget")
-    end, petTargetLeftY, MinimalUnitFramesDB.showPetTargetFrameText)
-    petTargetLeftY = petTargetLeftY - 30
+    end, MinimalUnitFramesDB.showPetTargetFrameText)
 
     CreateOptionElement(petTargetLeftColumn, "Checkbox", "Show Pet Target Level Text", "Display level text on Pet Target frame", function(self)
         MinimalUnitFramesDB.showPetTargetLevelText = self:GetChecked()
         addon.UpdateLevelTextVisibility("pettarget")
-    end, petTargetLeftY, MinimalUnitFramesDB.showPetTargetLevelText)
-    petTargetLeftY = petTargetLeftY - 50
+    end, MinimalUnitFramesDB.showPetTargetLevelText)
 
     CreateOptionElement(petTargetLeftColumn, "Dropdown", "Pet Target Frame Strata", "Set the strata of the Pet Target frame", function(value)
         MinimalUnitFramesDB.petTargetStrata = value
         addon.UpdateFrameStrata(addon.petTargetFrame, "pettarget")
-    end, petTargetLeftY, MinimalUnitFramesDB.petTargetStrata, {
+    end, MinimalUnitFramesDB.petTargetStrata, {
         items = addon.Util.GetMediaList("stratas")
     })
-    petTargetLeftY = petTargetLeftY - 50
 
     CreateOptionElement(petTargetLeftColumn, "Dropdown", "Pet Target Anchor Point", "Set the anchor point of the Pet Target frame", function(value)
         MinimalUnitFramesDB.petTargetAnchor = value
         addon.UpdateFramePosition(addon.petTargetFrame, "pettarget")
-    end, petTargetLeftY, MinimalUnitFramesDB.petTargetAnchor, {
+    end, MinimalUnitFramesDB.petTargetAnchor, {
         items = addon.Util.GetMediaList("anchorPoints")
     })
 
@@ -1013,37 +1076,34 @@ local function CreateOptions(frame)
     CreateOptionElement(petTargetRightColumn, "Slider", "Pet Target Width", "Adjust the width of the Pet Target frame", function(self, value)
         MinimalUnitFramesDB.petTargetWidth = value
         addon.UpdateFrameSize(addon.petTargetFrame, "pettarget")
-    end, petTargetRightY, MinimalUnitFramesDB.petTargetWidth, {
+    end, MinimalUnitFramesDB.petTargetWidth, {
         min = 50,
         max = 400,
         step = 1
     })
-    petTargetRightY = petTargetRightY - 50
 
     CreateOptionElement(petTargetRightColumn, "Slider", "Pet Target Height", "Adjust the height of the Pet Target frame", function(self, value)
         MinimalUnitFramesDB.petTargetHeight = value
         addon.UpdateFrameSize(addon.petTargetFrame, "pettarget")
-    end, petTargetRightY, MinimalUnitFramesDB.petTargetHeight, {
+    end, MinimalUnitFramesDB.petTargetHeight, {
         min = 20,
         max = 200,
         step = 1
     })
-    petTargetRightY = petTargetRightY - 50
 
     CreateOptionElement(petTargetRightColumn, "Slider", "Pet Target X Position", "Adjust the horizontal position of the Pet Target frame", function(self, value)
         MinimalUnitFramesDB.petTargetXPos = value
         addon.UpdateFramePosition(addon.petTargetFrame, "pettarget")
-    end, petTargetRightY, MinimalUnitFramesDB.petTargetXPos, {
+    end, MinimalUnitFramesDB.petTargetXPos, {
         min = -800,
         max = 800,
         step = 1
     })
-    petTargetRightY = petTargetRightY - 50
 
     CreateOptionElement(petTargetRightColumn, "Slider", "Pet Target Y Position", "Adjust the vertical position of the Pet Target frame", function(self, value)
         MinimalUnitFramesDB.petTargetYPos = value
         addon.UpdateFramePosition(addon.petTargetFrame, "pettarget")
-    end, petTargetRightY, MinimalUnitFramesDB.petTargetYPos, {
+    end, MinimalUnitFramesDB.petTargetYPos, {
         min = -600,
         max = 600,
         step = 1

@@ -18,27 +18,33 @@ end
 ---@param frame any UnitFrame
 function CombatText:CreateCombatFeedback(frame)
     local feedbackText = frame:CreateFontString(nil, "OVERLAY")
-    feedbackText:SetPoint("CENTER", frame, "CENTER")
-    local fontSize = MinimalUnitFramesDB.fontSize or addon.Config.defaultConfig.fontSize
-    feedbackText:SetFont(addon.Util.FetchMedia("fonts", MinimalUnitFramesDB.font or addon.Config.defaultConfig.font), fontSize * 2, MinimalUnitFramesDB.fontStyle or addon.Config.defaultConfig.fontStyle)
+    feedbackText:SetPoint(addon.Config.combatFeedbackConfig.anchorPoint, frame, addon.Config.combatFeedbackConfig.anchorPoint, addon.Config.combatFeedbackConfig.xOffset, addon.Config.combatFeedbackConfig.yOffset)
     feedbackText:SetShadowOffset(1, -1)
+    feedbackText:SetFont(addon.Util.FetchMedia("fonts", MinimalUnitFramesDB.font or addon.Config.defaultConfig.font), MinimalUnitFramesDB.combatFeedbackFontSize or addon.Config.combatFeedbackConfig.fontSize, addon.Config.combatFeedbackConfig.fontOutline)
+
     frame.feedbackText = feedbackText
+
+    self:UpdateCombatFeedbackFontSize()
 
     local feedbackFrame = CreateFrame("Frame", nil, frame)
     feedbackFrame:SetAllPoints(frame)
     feedbackFrame:SetFrameLevel(frame:GetFrameLevel() + 100)
     feedbackText:SetParent(feedbackFrame)
-    frame.feedbackFrame = feedbackFrame -- Attach feedbackFrame to the main frame
+    frame.feedbackFrame = feedbackFrame
 
     local feedbackStartTime = 0
     local feedbackDuration = 0
 
+    --- OnUpdate function to fade out the feedback text
+    ---@param self any Frame
+    ---@param elapsed number
     feedbackFrame:SetScript("OnUpdate", function(self, elapsed)
         if feedbackStartTime + feedbackDuration > GetTime() then
-            local alpha = 1.0 - (GetTime() - feedbackStartTime) / feedbackDuration
+            local alpha = math.max(0, 1.0 - (GetTime() - feedbackStartTime) / addon.Config.combatFeedbackConfig.fadeOutDuration)
             feedbackText:SetAlpha(alpha)
         else
             feedbackText:SetText(nil)
+            feedbackText:SetAlpha(0)
         end
     end)
 
@@ -52,10 +58,10 @@ function CombatText:CreateCombatFeedback(frame)
         local text, color
         if type == "ENTERING_COMBAT" then
             text = "COMBAT"
-            color = addon.Config.combatFeedbackConfig.colors.STANDARD
+            color = addon.Config.combatFeedbackConfig.colors.ENTERING_COMBAT
         elseif type == "LEAVING_COMBAT" then
             text = "LEAVING COMBAT"
-            color = addon.Config.combatFeedbackConfig.colors.STANDARD
+            color = addon.Config.combatFeedbackConfig.colors.LEAVING_COMBAT
         else
             if not amount or amount == 0 then
                 return
@@ -64,10 +70,16 @@ function CombatText:CreateCombatFeedback(frame)
             color = addon.Config.combatFeedbackConfig.colors[type] or addon.Config.combatFeedbackConfig.colors.STANDARD
         end
 
-        local fontHeight = (MinimalUnitFramesDB.fontSize or addon.Config.defaultConfig.fontSize) * 2
-        feedbackText:SetFont(addon.Util.FetchMedia("fonts", MinimalUnitFramesDB.font or addon.Config.defaultConfig.font), fontHeight, MinimalUnitFramesDB.fontStyle or addon.Config.defaultConfig.fontStyle)
+        if not color then
+            color = addon.Config.combatFeedbackConfig.colors.STANDARD or {
+                r = 1,
+                g = 1,
+                b = 1
+            }
+        end
+
         feedbackStartTime = GetTime()
-        feedbackDuration = 2.0
+        feedbackDuration = addon.Config.combatFeedbackConfig.duration or 2.0
 
         feedbackText:SetText(text)
         feedbackText:SetTextColor(color.r, color.g, color.b)
@@ -93,3 +105,11 @@ function CombatText:OnEvent(frame, event, ...)
         frame.CombatFeedback_OnCombatEvent(frame, event, nil, nil, "LEAVING_COMBAT")
     end
 end
+
+function CombatText:UpdateCombatFeedbackFontSize()
+    if addon.playerFrame and addon.playerFrame.feedbackText then
+        addon.playerFrame.feedbackText:SetFont(addon.Util.FetchMedia("fonts", MinimalUnitFramesDB.font or addon.Config.defaultConfig.font), MinimalUnitFramesDB.combatFeedbackFontSize or addon.Config.combatFeedbackConfig.fontSize, addon.Config.combatFeedbackConfig.fontOutline)
+    end
+end
+
+return CombatText

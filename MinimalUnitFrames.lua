@@ -177,6 +177,7 @@ local function CreateUnitFrame(unit)
     addon.UpdateFrame(frame, unit)
     frame:Show()
 
+    -- Combat Feedback
     if unit == "player" and addon.CombatText then
         addon.CombatText:CreateCombatFeedback(frame)
         frame:RegisterEvent("UNIT_COMBAT")
@@ -200,6 +201,7 @@ function addon.UpdateFrame(frame, unit)
         return
     end
 
+    -- TODO: Another way?
     if unit == "targetoftarget" then
         unit = "targettarget"
     end
@@ -290,9 +292,9 @@ function addon.UpdateFrameSize(frame, unit)
     local hasResourceBar = frame.resourceBar and frame.resourceBar:IsShown()
     local showPowerBar = frame.powerBar:IsShown()
     local healthHeight, powerHeight, resourceHeight
-
     local availableHeight = height - 10
 
+    -- Height calculations
     if hasResourceBar then
         if showPowerBar then
             healthHeight = availableHeight * 0.5
@@ -314,18 +316,21 @@ function addon.UpdateFrameSize(frame, unit)
         resourceHeight = 0
     end
 
+    -- Health Bar
     frame.healthBar:ClearAllPoints()
     frame.powerBar:ClearAllPoints()
     frame.healthBar:SetPoint("TOPLEFT", frame.barsFrame, "TOPLEFT", 5, -5)
     frame.healthBar:SetPoint("TOPRIGHT", frame.barsFrame, "TOPRIGHT", -5, -5)
     frame.healthBar:SetHeight(healthHeight)
 
+    -- Power Bar
     if showPowerBar then
         frame.powerBar:SetPoint("TOPLEFT", frame.healthBar, "BOTTOMLEFT", 0, -1)
         frame.powerBar:SetPoint("TOPRIGHT", frame.healthBar, "BOTTOMRIGHT", 0, -1)
         frame.powerBar:SetHeight(powerHeight)
     end
 
+    -- Resource Bar
     if frame.resourceBar then
         frame.resourceBar:ClearAllPoints()
         if hasResourceBar then
@@ -367,6 +372,7 @@ function addon.UpdateFramePosition(frame, unit)
         anchor = MinimalUnitFramesDB.petTargetAnchor or addon.Config.defaultConfig.petTargetAnchor
     end
 
+    -- Frame Anchor
     frame:ClearAllPoints()
     if unit == "target" and anchoredTo == "Player Frame" then
         local playerFrame = addon.playerFrame
@@ -623,6 +629,14 @@ function addon.UpdateAllFrames()
 
     if addon.ClassResources and MinimalUnitFramesDB.showPlayerClassResources and addon.ClassResources:HasClassResources() then
         addon.ClassResources:UpdateResourceBar(playerFrame, "player")
+    end
+
+    if addon.CombatText then
+        addon.CombatText:UpdateCombatFeedbackFontSize()
+    end
+
+    if addon.Auras then
+        addon.Auras:UpdateAllAuras()
     end
 end
 
